@@ -66,10 +66,17 @@ angular.module('listenone').controller('ProfileController', [
     };
 
     $scope.initProfile = () => {
-      const url = `https://api.github.com/repos/listen1/listen1_chrome_extension/releases/latest`;
-      axios.get(url).then((response) => {
-        $scope.lastestVersion = response.data.tag_name;
-      });
+      // Fork build: check this fork's releases instead of upstream's.
+      const url = `https://api.github.com/repos/llz121517/listen1/releases/latest`;
+      axios
+        .get(url)
+        .then((response) => {
+          $scope.lastestVersion = response.data.tag_name;
+        })
+        .catch(() => {
+          // No release published yet (or offline): keep the label hidden.
+          $scope.lastestVersion = '';
+        });
 
       $scope.getProxyConfig();
     };

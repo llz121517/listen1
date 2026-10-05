@@ -46,7 +46,8 @@
     "*://github.com/*",
     "*://gist.githubusercontent.com/*"
   ],
-  "version": "2.33.0",
+  "version": "1.0.0",
+  "version_name": "Liuli-1.0.0",
   "web_accessible_resources": [
     {
       "resources": ["images/*"],
