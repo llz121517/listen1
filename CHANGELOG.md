@@ -27,5 +27,11 @@
 - 新增本 fork 的更新日志（即本文件）
 - 设置页的「最新版本」检查改为读取本 fork 仓库的 releases（`llz121517/listen1`），并处理无 release / 请求失败的情况（`js/controller/profile.js`）
 - `INDEX.md` 同步版本行与 fork 版本方案说明
+- 新增**日语（ja-JP）界面语言**
+  - 新增 `i18n/ja-JP.json`：172 键，键集与键序与 `zh-CN.json` 完全一致（已逐键校验）
+  - `js/app.js:497-506`：`supportedLngs` / `preload` 加入 `ja-JP`（放在 `ko-KR` 之后、`pt-BR` 之前）
+  - `listen1.html`：两套布局的语言按钮各加「日本語」（A 套 `:925` / B 套 `:3013`）；顺带补上 B 套（新版主题）此前缺失的「Português」(`pt-BR`) 按钮（A 套 `:931` / B 套 `:3019`）
+  - `INDEX.md` §8 与 §13 同步语言数量（7 份）与"加语言"步骤
+- 修正既有文案（原文）问题：GitHub 授权提示中的按钮名拼写 `Authencate` → `Authenticate`（`zh-CN` / `zh-TC` / `en-US` / `ko-KR` / `ja-JP`）；`en-US` / `fr-FR` 的 `_OPENING_LASTFM_PAGE`、`_OPENING_GITHUB_PAGE` 残留中文「页面」改为对应语言的 page；`en-US` 授权提示补正英文语法（`allow Listen 1 access` → `and allow Listen 1 to access`）
 
 基线：上游 `3f24efa`（`chore: add more changelog`，版本 `2.33.0`）。
