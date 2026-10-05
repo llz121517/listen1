@@ -15,7 +15,7 @@
 | License | MIT（`LICENSE`） |
 
 > **fork 与版本方案**：本仓库是 [llz121517/listen1](https://github.com/llz121517/listen1)，fork 自 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)。
-> 版本号自 `Liuli-1.0.0` 起独立编号，以避免与上游 `2.33.0` 混淆；上游更新日志已归档到 [`docs/archive/`](docs/archive/)，本 fork 的日志见 [`CHANGELOG.md`](CHANGELOG.md)。
+> 版本号自 `Liuli-1.0.0` 起独立编号，以避免与上游 `2.33.0` 混淆；上游更新日志已归档到 [`docs/archive/`](archive/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
 > 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此 `manifest.json` / `manifest_firefox.json` 写 `1.0.0`，用 `version_name` 承载 `Liuli-1.0.0`；`package.json` / `package-lock.json` 直接写 `Liuli-1.0.0`（npm 11 的 `install`/`ci`/`pack` 实测接受）。
 
 ---
@@ -113,6 +113,7 @@ listen1/
 ├── i18n/                       7 语言 × 173 键，扁平结构
 ├── fonts/                      listen1-icon 图标字体 4 种格式
 ├── config/                     about.json（「关于」页信息）、languages.json（语言清单）
+├── docs/                       本仓库文档：INDEX.md（总索引）、archive/（上游更新日志归档）
 └── images/                     logo、图标雪碧图、加载动画、默认封面等
 ```
 
@@ -572,13 +573,13 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 
 | 文档 | 内容 |
 | --- | --- |
-| [README.md](README.md) | 中文说明、安装方式、更新日志入口 |
-| [README_EN.md](README_EN.md) | 英文版说明 |
-| [CHANGELOG.md](CHANGELOG.md) | **本 fork** 的更新日志（自 `Liuli-1.0.0` 起）与版本号约定 |
-| [docs/archive/CHANGELOG_UPSTREAM.md](docs/archive/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
-| [docs/archive/CHANGELOG_UPSTREAM_EN.md](docs/archive/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |
-| [LICENSE](LICENSE) | MIT |
-| [.github/workflows/eslint.yml](.github/workflows/eslint.yml) | CI 定义 |
+| [README.md](../README.md) | 中文说明、安装方式、更新日志入口 |
+| [README_EN.md](../README_EN.md) | 英文版说明 |
+| [CHANGELOG.md](../CHANGELOG.md) | **本 fork** 的更新日志（自 `Liuli-1.0.0` 起）与版本号约定 |
+| [docs/archive/CHANGELOG_UPSTREAM.md](archive/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
+| [docs/archive/CHANGELOG_UPSTREAM_EN.md](archive/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |
+| [LICENSE](../LICENSE) | MIT |
+| [.github/workflows/eslint.yml](../.github/workflows/eslint.yml) | CI 定义 |
 | 本 fork 仓库 | https://github.com/llz121517/listen1 |
 | 上游仓库 | https://github.com/listen1/listen1_chrome_extension |
 | 桌面版（复用本仓库渲染层） | https://github.com/listen1/listen1_desktop |
