@@ -75,7 +75,7 @@ listen1/
 ├── package.json                         仅 devDependencies（eslint/prettier/husky），version Liuli-1.0.0
 ├── .eslintrc.json .prettierrc .gitignore
 ├── .github/workflows/eslint.yml         CI：push/PR 到 master 跑 npx eslint .
-├── README.md / README_EN.md             中文/英文说明与更新日志
+├── README.md                            中文说明（英文版见 docs/en/README.md）
 ├── LICENSE                              MIT
 ├── js/
 │   ├── app.js                    514    AngularJS 模块、指令、i18next 初始化
@@ -113,7 +113,7 @@ listen1/
 ├── i18n/                       7 语言 × 173 键，扁平结构
 ├── fonts/                      listen1-icon 图标字体 4 种格式
 ├── config/                     about.json（「关于」页信息）、languages.json（语言清单）
-├── docs/                       本仓库文档：INDEX.md（总索引）、archive/（上游更新日志归档）
+├── docs/                       本仓库文档：INDEX.md（总索引）、en/README.md（英文说明）、archive/（上游更新日志归档）
 └── images/                     logo、图标雪碧图、加载动画、默认封面等
 ```
 
@@ -574,7 +574,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 文档 | 内容 |
 | --- | --- |
 | [README.md](../README.md) | 中文说明、安装方式、更新日志入口 |
-| [README_EN.md](../README_EN.md) | 英文版说明 |
+| [docs/en/README.md](en/README.md) | 英文版说明 |
 | [CHANGELOG.md](../CHANGELOG.md) | **本 fork** 的更新日志（自 `Liuli-1.0.0` 起）与版本号约定 |
 | [docs/archive/CHANGELOG_UPSTREAM.md](archive/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
 | [docs/archive/CHANGELOG_UPSTREAM_EN.md](archive/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |

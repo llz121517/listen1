@@ -1,8 +1,11 @@
-# Listen 1 (Chrome Extension) Liuli-1.0.0
+# Listen 1
 
-（Last Update Oct 6th, 2026)
+fork of [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)
 
-[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](LICENSE)
+<a href="../../README.md">简体中文</a>
+| English
+
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg)](../../LICENSE)
 
 ## One for all free music in China
 
@@ -49,9 +52,9 @@ Making your own playlist is also supported.
 
 > Versioning restarts at `Liuli-1.0.0` in this fork (upstream last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
 
-- This fork's changelog: [CHANGELOG.md](CHANGELOG.md)
-- Upstream changelog (archived, verbatim): [docs/archive/CHANGELOG_UPSTREAM_EN.md](docs/archive/CHANGELOG_UPSTREAM_EN.md)
+- This fork's changelog: [CHANGELOG.md](../../CHANGELOG.md)
+- Upstream changelog (archived, verbatim): [docs/archive/CHANGELOG_UPSTREAM_EN.md](../archive/CHANGELOG_UPSTREAM_EN.md)
 
 ## License
 
-MIT
+[MIT](../../LICENSE)
