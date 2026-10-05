@@ -20,6 +20,7 @@ angular.module('listenone').controller('ProfileController', [
     }
     $scope.lastestVersion = '';
     $scope.theme = '';
+    $scope.about = {};
     $scope.languages = [];
     $scope.proxyModes = [
       { name: 'system', displayId: '_PROXY_SYSTEM' },
@@ -71,6 +72,17 @@ angular.module('listenone').controller('ProfileController', [
     };
 
     $scope.initProfile = () => {
+      // "About" page info (contact / links / credits / displayed version).
+      axios
+        .get('config/about.json')
+        .then((response) => {
+          $scope.about = response.data;
+        })
+        .catch(() => {
+          // A missing or unreadable config must not break the settings page.
+          $scope.about = {};
+        });
+
       // Language buttons: the ids come from config/languages.json, the label from
       // each locale file's own _LANGUAGE_NAME field.
       axios

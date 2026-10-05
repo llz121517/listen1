@@ -1,0 +1,14 @@
+{
+  "_comment": "「关于」页展示信息。fork 改信息只动这个文件，无需改 listen1.html。version 仅供展示，manifest.json / manifest_firefox.json / package.json 才是权威版本号。",
+  "version": "Liuli-1.0.0",
+  "homepage": "https://listen1.github.io/listen1/",
+  "email": "githublisten1@gmail.com",
+  "feedback": {
+    "chrome": "https://github.com/listen1/listen1_chrome_extension/issues",
+    "desktop": "https://github.com/listen1/listen1_desktop/issues"
+  },
+  "designers": {
+    "white": "iparanoid",
+    "modern": "814959822, Antion"
+  }
+}

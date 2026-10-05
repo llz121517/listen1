@@ -6,11 +6,11 @@
 | 项 | 值 |
 | --- | --- |
 | 项目 | Listen 1（Chrome / Firefox 扩展，同时作为 Listen1 桌面版渲染层） |
-| 版本 | `Liuli-1.0.0`（本 fork 独立编号；`package.json`/`package-lock.json` 写 `Liuli-1.0.0`，`manifest*.json` 写纯数字 `1.0.0` + `version_name`，`listen1.html` 两套布局各一处） |
+| 版本 | `Liuli-1.0.0`（本 fork 独立编号；`package.json`/`package-lock.json` 写 `Liuli-1.0.0`，`manifest*.json` 写纯数字 `1.0.0` + `version_name`，界面展示值在 `config/about.json`） |
 | 一句话 | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble |
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
-| 规模 | 非 vendor JS 10,388 行 / 28 文件；CSS 6,604 行；i18n 1,218 行；`listen1.html` 4,311 行 |
+| 规模 | 非 vendor JS 10,428 行 / 28 文件；CSS 6,604 行；i18n 1,225 行；`listen1.html` 4,241 行 |
 | 仓库 | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `master`） |
 | License | MIT（`LICENSE`） |
 
@@ -68,7 +68,7 @@ npx eslint .
 
 ```text
 listen1/
-├── listen1.html              4,311 行  唯一 UI 页面（含两套主题布局，见 §7）
+├── listen1.html              4,241 行  唯一 UI 页面（含两套主题布局，见 §7）
 ├── manifest.json                        Manifest V3：Chrome/Edge
 ├── manifest_firefox.json                Manifest V2：Firefox
 ├── rules_1.json                         声明式网络请求规则（改 Referer/UA 绕过防盗链，见 §9）
@@ -92,7 +92,7 @@ listen1/
 │   ├── controller/                      AngularJS 控制器（8 文件，2,137 行）
 │   │   ├── play.js               917    播放状态、歌词、设置项、快捷键、BG_PLAYER 消息处理
 │   │   ├── navigation.js         705    视图路由、歌单/对话框操作、备份导入导出
-│   │   ├── profile.js            160    语言、主题、代理、版本检查
+│   │   ├── profile.js            198    语言、主题、代理、版本检查
 │   │   ├── instant_search.js     139    多平台搜索页
 │   │   ├── playlist.js            73    歌单详情页
 │   │   ├── platform.js            58    "我的平台"（平台歌单）页
@@ -110,8 +110,9 @@ listen1/
 │   │   └── xiami.js              152    虾米（空实现占位，见 §12）
 │   └── vendor/                         10 个第三方库（3,965 行，勿手改）
 ├── css/                        6,604 行  13 个文件（含 3 个已废弃，见 §8）
-├── i18n/                       7 语言 × 172 键，扁平结构
+├── i18n/                       7 语言 × 173 键，扁平结构
 ├── fonts/                      listen1-icon 图标字体 4 种格式
+├── config/                     about.json（「关于」页信息）、languages.json（语言清单）
 └── images/                     logo、图标雪碧图、加载动画、默认封面等
 ```
 
@@ -309,7 +310,7 @@ Howler 播放中
 
 | 文件 | 行数 | 控制器 | `ng-controller` 位置 | 职责要点 |
 | --- | --- | --- | --- | --- |
-| `js/controller/profile.js` | 160 | `ProfileController` | `listen1.html:81`（包裹两套布局） | 语言（`setLang:111`）、主题（`setTheme:137`）、代理由 Electron IPC 管理（`:40-66,87-109`）、`initProfile:68` 查最新 release（fork 版查 `llz121517/listen1` 的 release，失败则隐藏该行） |
+| `js/controller/profile.js` | 198 | `ProfileController` | `listen1.html:81`（包裹两套布局） | 语言（`setLang:149`，按钮清单来自 `config/languages.json`）、主题（`setTheme:175`）、代理由 Electron IPC 管理（`setProxyConfig:46` / `getProxyConfig:65` / 状态回调 `ipcRenderer.on:125`）、`initProfile:74` 拉取 `config/about.json`、`config/languages.json` 并查最新 release（fork 版查 `llz121517/listen1` 的 release，失败则隐藏该行） |
 | `js/controller/play.js` | 917 | `PlayController` | `:88`、`:2096` | 播放状态、歌词渲染、`enable_*` 设置项、快捷键 `:786-815`（`p [ ] m l s u d`）、Electron 全局快捷键 `:835`、`BG_PLAYER:*` 消息分发 `:497-779`、`parseLyric:386` |
 | `js/controller/auth.js` | 49 | `AuthController` | `:91`、`:2099` | 各平台登录状态 `musicAuth`、`refreshAuthStatus`、`openLogin` |
 | `js/controller/navigation.js` | 705 | `NavigationController` | `:93`、`:2101` | 视图路由 `current_tag`、`showDialog(0-12)`、歌单增删改、拖拽排序、备份导入导出、`f` 聚焦搜索 `:605` |
@@ -359,13 +360,13 @@ ProfileController (listen1.html:81)
 
 | 套 | 起始行 | 结束行 | `ng-if` | 特点 | 主题 CSS |
 | --- | --- | --- | --- | --- | --- |
-| A 经典 | `:82` | `:2095` | `theme==='white' \|\| theme==='black'` | 扁平 `.sidebar-block`，歌词在内容区 | `iparanoid.css`/`origin.css` + `common.css` |
-| B 新版 | `:2090` | `:4289` | `theme==='white2' \|\| theme==='black2'` | 可折叠侧栏、封面背景、`#rotatemark` 动画、歌词在页脚内 | `iparanoid2.css`/`origin2.css` + `common2.css` |
+| A 经典 | `:82` | `:2060` | `theme==='white' \|\| theme==='black'` | 扁平 `.sidebar-block`，歌词在内容区 | `iparanoid.css`/`origin.css` + `common.css` |
+| B 新版 | `:2061` | `:4225` | `theme==='white2' \|\| theme==='black2'` | 可折叠侧栏、封面背景、`#rotatemark` 动画、歌词在页脚内 | `iparanoid2.css`/`origin2.css` + `common2.css` |
 
-映射表在 `js/controller/profile.js:140-145`，切换时改写 `#theme-css`/`#common-css` 的 `href`。
-外层 `ProfileController` 容器在 `:81`，闭合于 `:4290`，因此语言/主题状态只有一份。
+映射表在 `js/controller/profile.js:178-183`，切换时改写 `#theme-css`/`#common-css` 的 `href`。
+外层 `ProfileController` 容器在 `:81`，闭合于 `:4226`，因此语言/主题状态只有一份。
 
-> ⚠️ **行号偏移（2026-10-06 起的 fork 改动）**：`listen1.html` 两套布局各新增了语言按钮 —— A 套 `:923-928`（日语，6 行）、B 套 `:3011-3022`（日语 + 补回 pt-BR，共 12 行）—— 因此 **A 套 `:928` 之后的行号整体 +6，B 套 `:3022` 之后整体 +12**（总行数 4,293 → 4,311）。本节的 A/B 边界已按新行号更新，但 §7.2 等表格中的锚点仍按生成时的旧行号给出，检索时请自行加偏移，或直接以 `current_tag==` / `window_type==` 标记定位。
+> ⚠️ **行号说明（2026-10-06 起的 fork 改动）**：fork 把两套布局里硬编码的语言按钮换成了 `ng-repeat`（A `:893-899` / B `:2946-2952`），并把设置页「关于」信息改为绑定 `config/about.json`；因此 `listen1.html` 总行数由上游的 4,293 降为 **4,241**，本节 A/B 边界与相关行号为实测值。§7.2 / §13 中 `listen1.html` 的行号多数由上游 4,293 行基线推算、未逐一复核，检索时请优先用 `current_tag==` / `window_type==` / 键名定位，行号仅作参考。
 
 **维护含义：改 UI 必须同步改两处**（A 套行号 × B 套行号见下表）。
 
@@ -418,7 +419,7 @@ ProfileController (listen1.html:81)
 | `css/player.css` | 1,225 行 | **废弃** | 旧播放器皮肤，无引用 |
 | `css/cover.css` / `css/reset.css` | 3,537 / 1,041 B | **废弃** | Bootstrap Cover 模板残留 / reset |
 
-- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 172 个键且键集与键序完全一致；其中 161 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497-506`），默认与回退语言均为 `zh-CN`，`supportedLngs`/`preload` 必须与 `i18n/` 目录一一对应。语言按钮是硬编码的，**两套布局各一份**（`listen1.html` 中检索 `setLang(`，A/B 各 7 个）。`profile.js` 只在 `zh-CN`/`en-US` 间自动探测，但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键。**
+- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 173 个键且键集与键序完全一致；其中 162 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `preload: ['zh-CN']`（`app.js:502-503`），**不再需要维护语言白名单**。语言按钮由 `ng-repeat` 动态生成（A `listen1.html:893-899` / B `:2946-2952`），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js:86-105` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键。**
 - **字体**：`fonts/listen1-icon.{eot,svg,ttf,woff}`。
 - **图片**：`logo*.png`/`favicon.ico`（清单与页面图标）、`mycover.jpg`（默认歌单封面）、`placeholder.png`（登录卡占位）、`feather-sprite.svg`（运行时注入 `#feather-container`，供 `<use>` 引用）、`loading.svg`/`loading-1.gif`（加载态）；`netease-logo.png` 与 `loading.gif`、`player_*.png`、`progress_indicator.png`、`statbar.png` 已无有效引用。
 
@@ -442,7 +443,7 @@ ProfileController (listen1.html:81)
 | `enable_stop_when_close` | `l1_player.js:5`、`play.js:167,483,882` | 决定 front/background 播放模式 |
 | `enable_lyric_translation` / `enable_lyric_floating_window[_translation]` / `float_window_setting` | `play.js:819,234,828,300` | 歌词翻译与悬浮窗 |
 | `enable_nowplaying_cover_background` / `_bitrate` / `_platform` / `enable_global_shortcut` | `play.js:893,902,911,212` | 正在播放页外观与全局快捷键 |
-| `theme` / `language` / `openSidebar` | `profile.js:134,14`、`navigation.js:40` | 应用偏好 |
+| `theme` / `language` / `openSidebar` | `profile.js:172,18`、`navigation.js:40` | 应用偏好 |
 
 > Gist 备份会把这些键整体上传（`navigation.js:509-556`，排除 `gistid`、`githubOauthAccessKey`）。
 
@@ -556,8 +557,9 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 改进度条 / 歌词滚动 / 正在播放页 | `js/controller/play.js`（`parseLyric:386`、`:497-779` 消息分发）+ `listen1.html` 页脚区块（A `:1834-2088` / B `:3853-4276`） |
 | 改快捷键 | 绑定：`play.js:786-815`、`navigation.js:605`；**同时**改展示表 `listen1.html:1283-1411` 与 `:3359-3487` |
 | 加/改界面元素 | `listen1.html` —— **两套布局都要改**（§7.2 对照表）+ 对应 `css/common.css` / `css/common2.css` |
-| 改主题配色 | `css/iparanoid.css`(white)、`origin.css`(black)、`iparanoid2.css`(white2)、`origin2.css`(black2)；映射在 `profile.js:140-145` |
-| 改文案/加语言 | `i18n/*.json`（扁平键，键名 `_UPPER_SNAKE`，7 份键集必须一致）+ `app.js:497-506` 的 `supportedLngs`/`preload` + **两套布局各加一个语言按钮**（`listen1.html` 检索 `setLang(`，A/B 各一处） |
+| 改主题配色 | `css/iparanoid.css`(white)、`origin.css`(black)、`iparanoid2.css`(white2)、`origin2.css`(black2)；映射在 `profile.js:178-183` |
+| 改文案/加语言 | `i18n/*.json`（扁平键，键名 `_UPPER_SNAKE`，7 份键集必须一致，每份含 `_LANGUAGE_NAME` 作为按钮自称）；**加语言 = 新增 `i18n/xx.json` + `config/languages.json` 加一行**，按钮自动生成，无需改 `listen1.html` / `app.js` |
+| 改「关于」页信息 | `config/about.json`（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名），由 `profile.js:74` 的 `initProfile` 拉取；模板绑定 `about.*`：A `listen1.html:1423-1446` / B `:3476-3499` |
 | 改歌单存储/备份 | `js/myplaylist.js`（本地存储）、`js/controller/navigation.js:509-556`（备份字段清单）、`js/github.js`（Gist） |
 | 改设置项 | `js/controller/play.js` 的 `loadLocalSettings`/`saveLocalSettings`（`enable_*` 键）+ 设置页 `listen1.html:880-1482` / `:2965-3562` |
 | 自动切源策略 | `loweb.js:341-398` + 默认源列表 `play.js:158-165` |
@@ -589,4 +591,4 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 *本索引由代码静态阅读生成，未修改任何源文件。行号以当前工作区 `master` 分支（commit `3f24efa`）为准。*
 *已用 grep / read 复核的内容：脚本加载顺序、Provider 注册表、播放链路关键函数、双布局边界锚点、行数统计、`kugou.js:425` / `qq.js:409-428` / `player_thread.js:662` 三处缺陷。*
 *`listen1.html` B 套布局的行号区间按各区块起始标记推算（A/B 两套内容一一对应但不等长），可能存在 ±10 行误差；精确位置请以 `current_tag==` / `window_type==` 标记检索。*
-*2026-10-06（fork `Liuli-1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增 `i18n/ja-JP.json`（7 语言 × 172 键）与两套布局的日语按钮，并补回 B 套缺失的 pt-BR 按钮。因此 `profile.js` 为 160 行（`setLang:111` / `setTheme:137` / 主题映射 `:140-145`），`listen1.html` 为 4,311 行，非 vendor JS 为 10,388 行。*
+*2026-10-06（fork `Liuli-1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,428 行。*
