@@ -10,7 +10,7 @@
 | 一句话 | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble |
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
-| 规模 | 非 vendor JS 10,428 行 / 28 文件；CSS 6,604 行；i18n 1,225 行；`listen1.html` 4,241 行 |
+| 规模 | 非 vendor JS 10,432 行 / 28 文件；CSS 6,604 行；i18n 1,225 行；`listen1.html` 4,241 行 |
 | 仓库 | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `master`） |
 | License | MIT（`LICENSE`） |
 
@@ -78,7 +78,7 @@ listen1/
 ├── README.md / README_EN.md             中文/英文说明与更新日志
 ├── LICENSE                              MIT
 ├── js/
-│   ├── app.js                    508    AngularJS 模块、指令、i18next 初始化
+│   ├── app.js                    514    AngularJS 模块、指令、i18next 初始化
 │   ├── bridge.js                  91    UI ↔ 播放器（front/background 双模式）消息桥
 │   ├── player_thread.js          665    音频引擎（Howler 封装、播放列表、进度事件）
 │   ├── l1_player.js              238    播放器门面 window.l1Player（UI 唯一调用入口）
@@ -264,7 +264,7 @@ Howler 播放中
 | `js/loweb.js` | 444 | Provider 注册表 + 服务门面（别名 `loWeb`） | `PROVIDERS:4-78`、`getProviderByName:80`、`getAllSearchProviders:88`、`getProviderByItemId:97`、`playlistCache:103`、`MediaService:116`、`search:122`、`getPlaylist:193`、`getLyric:171`、`bootstrapTrack:338`、`parseURL:302`、`mergePlaylist:325`、`clonePlaylist:217`、`loWeb = MediaService:444` |
 | `js/github.js` | 187 | GitHub OAuth + Gist 备份/恢复 | `window.GithubClient:26`；`.github`: `handleCallback:28`、`openAuthUrl:49`、`getStatusText:68`、`updateStatus:80`、`logout:97`；`.gist`: `json2gist:104`、`gist2json:138`、`listExistBackup:150`、`backupMySettings2Gist:159`、`importMySettingsFromGist:180`；axios 拦截器注入 token `:14-19` |
 | `js/lastfm.js` | 249 | Last.fm 授权 + now playing + scrobble | `window.lastfm:248`；`generateSign:31`(forge MD5)、`getAuth:141`、`getSession:57`、`sendNowPlaying:169`、`scrobble:195`、`isAuthorized:226` |
-| `js/app.js` | 508 | AngularJS 模块装配：全局指令、toast、i18next 引导 | `sourceList:10-39`（7 平台 tab）、`main():41`、`l1Player.injectDirectives:110`、指令 `pagination:142`/`errSrc:150`/`addAndPlay:179`/`addWithoutPlay:194`/`openUrl:209`/`windowControl:229`/`infiniteScroll:247`/`dragDropZone:287`/`draggableBar:413`；`i18next.init:497-506` |
+| `js/app.js` | 514 | AngularJS 模块装配：全局指令、toast、i18next 引导 | `sourceList:10-39`（7 平台 tab）、`main():41`、`l1Player.injectDirectives:110`、指令 `pagination:142`/`errSrc:150`/`addAndPlay:179`/`addWithoutPlay:194`/`openUrl:209`/`windowControl:229`/`infiniteScroll:247`/`dragDropZone:287`/`draggableBar:413`；`i18next.init:497-512` |
 
 ### 6.3 Provider 音乐源层
 
@@ -419,7 +419,7 @@ ProfileController (listen1.html:81)
 | `css/player.css` | 1,225 行 | **废弃** | 旧播放器皮肤，无引用 |
 | `css/cover.css` / `css/reset.css` | 3,537 / 1,041 B | **废弃** | Bootstrap Cover 模板残留 / reset |
 
-- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 173 个键且键集与键序完全一致；其中 162 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `preload: ['zh-CN']`（`app.js:502-503`），**不再需要维护语言白名单**。语言按钮由 `ng-repeat` 动态生成（A `listen1.html:893-899` / B `:2946-2952`），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js:86-105` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键。**
+- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 173 个键且键集与键序完全一致；其中 162 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `load: 'currentOnly'` + `preload: ['zh-CN']`（`app.js:502,506-507`），**不再需要维护语言白名单**；`load: 'currentOnly'` 是必需的 —— 否则 i18next 会额外请求不带区域码的 `i18n/zh.json`（不存在 → 404 + 后端重试，首次翻译被推迟）。语言按钮由 `ng-repeat` 动态生成（A `listen1.html:893-899` / B `:2946-2952`），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js:86-105` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键。**
 - **字体**：`fonts/listen1-icon.{eot,svg,ttf,woff}`。
 - **图片**：`logo*.png`/`favicon.ico`（清单与页面图标）、`mycover.jpg`（默认歌单封面）、`placeholder.png`（登录卡占位）、`feather-sprite.svg`（运行时注入 `#feather-container`，供 `<use>` 引用）、`loading.svg`/`loading-1.gif`（加载态）；`netease-logo.png` 与 `loading.gif`、`player_*.png`、`progress_indicator.png`、`statbar.png` 已无有效引用。
 
@@ -591,4 +591,4 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 *本索引由代码静态阅读生成，未修改任何源文件。行号以当前工作区 `master` 分支（commit `3f24efa`）为准。*
 *已用 grep / read 复核的内容：脚本加载顺序、Provider 注册表、播放链路关键函数、双布局边界锚点、行数统计、`kugou.js:425` / `qq.js:409-428` / `player_thread.js:662` 三处缺陷。*
 *`listen1.html` B 套布局的行号区间按各区块起始标记推算（A/B 两套内容一一对应但不等长），可能存在 ±10 行误差；精确位置请以 `current_tag==` / `window_type==` 标记检索。*
-*2026-10-06（fork `Liuli-1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,428 行。*
+*2026-10-06（fork `Liuli-1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,432 行。*

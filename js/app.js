@@ -500,6 +500,10 @@ i18next.use(i18nextHttpBackend).init({
   // No whitelist: the language list lives in config/languages.json only, so a new
   // i18n/xx.json (plus one line in that list) works without touching this file.
   supportedLngs: false,
+  // Only ever request the exact locale codes we ship (i18n/zh-CN.json). Without
+  // this, i18next also tries the region-less code (i18n/zh.json) which does not
+  // exist → 404 + backend retries, which delays the first translation pass.
+  load: 'currentOnly',
   preload: ['zh-CN'],
   debug: false,
   backend: {
