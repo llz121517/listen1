@@ -5,17 +5,22 @@
 /* global angular i18next sourceList platformSourceList */
 angular.module('listenone').controller('ProfileController', [
   '$scope',
-  ($scope) => {
+  '$q',
+  ($scope, $q) => {
+    const LANGUAGE_LABEL = '_LANGUAGE_NAME';
     let defaultLang = 'zh-CN';
-    const supportLangs = ['zh-CN', 'en-US'];
-    if (supportLangs.indexOf(navigator.language) !== -1) {
+    // First-run detection only: which browser locales are auto-selected. The list
+    // of available languages (and the UI buttons) comes from config/languages.json.
+    const detectedLangs = ['zh-CN', 'en-US'];
+    if (detectedLangs.indexOf(navigator.language) !== -1) {
       defaultLang = navigator.language;
     }
-    if (supportLangs.indexOf(localStorage.getObject('language')) !== -1) {
+    if (detectedLangs.indexOf(localStorage.getObject('language')) !== -1) {
       defaultLang = localStorage.getObject('language');
     }
     $scope.lastestVersion = '';
     $scope.theme = '';
+    $scope.languages = [];
     $scope.proxyModes = [
       { name: 'system', displayId: '_PROXY_SYSTEM' },
       { name: 'direct', displayId: '_PROXY_DIRECT' },
@@ -66,6 +71,27 @@ angular.module('listenone').controller('ProfileController', [
     };
 
     $scope.initProfile = () => {
+      // Language buttons: the ids come from config/languages.json, the label from
+      // each locale file's own _LANGUAGE_NAME field.
+      axios
+        .get('config/languages.json')
+        .then((response) =>
+          $q.all(
+            response.data.map((id) =>
+              axios
+                .get(`i18n/${id}.json`)
+                .then((res) => ({ id, label: res.data[LANGUAGE_LABEL] || id }))
+                .catch(() => ({ id, label: id }))
+            )
+          )
+        )
+        .then((list) => {
+          $scope.languages = list;
+        })
+        .catch(() => {
+          $scope.languages = [];
+        });
+
       // Fork build: check this fork's releases instead of upstream's.
       const url = `https://api.github.com/repos/llz121517/listen1/releases/latest`;
       axios

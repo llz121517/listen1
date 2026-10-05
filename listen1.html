@@ -892,45 +892,10 @@
                                 <div>
                                   <button
                                     class="language-button"
-                                    ng-click="setLang('zh-CN')"
+                                    ng-repeat="l in languages"
+                                    ng-click="setLang(l.id)"
                                   >
-                                    简体中文
-                                  </button>
-                                  <button
-                                    class="language-button"
-                                    ng-click="setLang('zh-TC')"
-                                  >
-                                    繁体中文
-                                  </button>
-                                  <button
-                                    class="language-button"
-                                    ng-click="setLang('en-US')"
-                                  >
-                                    English
-                                  </button>
-                                  <button
-                                    class="language-button"
-                                    ng-click="setLang('fr-FR')"
-                                  >
-                                    French
-                                  </button>
-                                  <button
-                                    class="language-button"
-                                    ng-click="setLang('ko-KR')"
-                                  >
-                                    Korean
-                                  </button>
-                                  <button
-                                    class="language-button"
-                                    ng-click="setLang('ja-JP')"
-                                  >
-                                    日本語
-                                  </button>
-                                  <button 
-                                    class="language-button" 
-                                    ng-click="setLang('pt-BR')"
-                                  >
-                                    Brazilian Portuguese
+                                    {{l.label}}
                                   </button>
                                 </div>
                               </div>
@@ -2980,45 +2945,10 @@
                               <div>
                                 <button
                                   class="language-button"
-                                  ng-click="setLang('zh-CN')"
+                                  ng-repeat="l in languages"
+                                  ng-click="setLang(l.id)"
                                 >
-                                  简体中文
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('zh-TC')"
-                                >
-                                  繁体中文
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('en-US')"
-                                >
-                                  English
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('fr-FR')"
-                                >
-                                  French
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('ko-KR')"
-                                >
-                                  Korean
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('ja-JP')"
-                                >
-                                  日本語
-                                </button>
-                                <button
-                                  class="language-button"
-                                  ng-click="setLang('pt-BR')"
-                                >
-                                  Brazilian Portuguese
+                                  {{l.label}}
                                 </button>
                               </div>
                             </div>

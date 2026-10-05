@@ -497,8 +497,10 @@ const main = () => {
 i18next.use(i18nextHttpBackend).init({
   lng: 'zh-CN',
   fallbackLng: 'zh-CN',
-  supportedLngs: ['zh-CN', 'zh-TC', 'en-US', 'fr-FR', 'ko-KR', 'ja-JP', 'pt-BR'],
-  preload: ['zh-CN', 'zh-TC', 'en-US', 'fr-FR', 'ko-KR', 'ja-JP', 'pt-BR'],
+  // No whitelist: the language list lives in config/languages.json only, so a new
+  // i18n/xx.json (plus one line in that list) works without touching this file.
+  supportedLngs: false,
+  preload: ['zh-CN'],
   debug: false,
   backend: {
     loadPath: 'i18n/{{lng}}.json',
