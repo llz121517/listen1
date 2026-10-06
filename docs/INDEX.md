@@ -372,7 +372,7 @@ ProfileController (listen1.html 的 <body> 内联)
 | --- | --- | --- |
 | 播放区（`.footer` 起；含展开的"正在播放"页与队列抽屉） | `class="footer"`（上方 `[现代播放区]` 标记） | `iparanoid2.css` / `origin2.css` + `common2.css` |
 
-- **播放区规则直接以播放区类为根**：`css/common2.css` 里 150 处以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根的选择器（139 条规则）曾统一带 `.player-modern ` 前缀来隔离经典分支；经典分支于 2.0.0 移除后前缀一并去掉，`common2.css` 因此回到合并布局前的上游原文（只多 `--nav-height`）。**不要再加回前缀。**
+- **播放区规则直接以播放区类为根**：`css/common2.css` 里 150 处以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根的选择器（139 条规则）曾统一带 `.player-modern ` 前缀来隔离经典分支；经典分支于 2.0.0 移除后前缀一并去掉，`common2.css` 因此回到合并布局前的上游原文（差异只剩三处：`--nav-height` 块、删掉的死声明 `color: var(--color-text)`、2.1.0 清掉的 15 条死规则）。**不要再加回前缀。**
 - **层级**：外壳（侧栏 svg `10` / 顶栏 `100`）< 正在播放页 `.songdetail-wrapper` `100`（与顶栏同值、DOM 在后，所以压住顶栏）< 播放栏 `.footer` `130`（内部 `main-info` `110` / `menu` `120` / `footer-main` `140`）< 弹窗 `9999/10000`。`position: relative` 只为造上下文，不影响内部 `fixed` 面板的定位上下文。
 
 **维护含义：改 UI 只需改一套布局、一套播放区**；新增播放区规则直接以播放区类为根（不要加作用域前缀），改配色只动两套 palette。

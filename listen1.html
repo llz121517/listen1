@@ -47,7 +47,8 @@
         1. 播放区选择器直接以播放区类为根（.footer / .songdetail-wrapper / .playsong-detail /
            .volume-ctrl），写在 common2.css。它们曾经统一带 .player-modern 前缀以隔离经典分支，
            经典分支已于 2.0.0 移除、前缀随之去掉，common2.css 因此回到合并布局前的上游原文
-           （只多 --nav-height）。**不要再把前缀加回来。**
+           （差异只剩三处：--nav-height 块、删掉的死声明 color: var(--color-text)、2.1.0 清掉的
+           15 条死规则）。**不要再把前缀加回来。**
         2. 主题差异只写在 palette 变量文件（css/iparanoid2.css / css/origin2.css）：不要在
            common2.css 或 HTML 里加主题判断，也不要让两套 palette 的变量互相覆盖。
         3. z-index 顺序：外壳（侧栏 svg 10、顶栏 100）< 正在播放页 .songdetail-wrapper 100
@@ -1900,7 +1901,7 @@
                 <div>
                 <div class="footer" ng-class="{footerdef:playlist.length == 0}">
                   
-                  <div class="footer-main" ng-style="{background}"  ng-class="{slidedown: window_type=='track'}">
+                  <div class="footer-main" ng-style="{background}"  ng-class="{slidedown: window_type=='track', 'has-cover-bg': enableNowplayingCoverBackground}">
                     <div class="bgwrapper" ng-class="{slidedown: window_type=='track'}" style="overflow:hidden ;">
                       <div
                       ng-if="enableNowplayingCoverBackground"

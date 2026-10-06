@@ -77,19 +77,6 @@ html[data-custom-background='1'] body .body {
   );
 }
 
-html[data-custom-background='1']
-  .page
-  .login
-  .login-form
-  .login-form_field
-  input {
-  background-color: transparent;
-  background-image: linear-gradient(
-    var(--custom-bg-panel-tint),
-    var(--custom-bg-panel-tint)
-  );
-}
-
 /* --------------------------------------------------------------------------
    3. 顶部留白
       顶栏（.navigation）是流外、贴顶的，所以内容流从容器顶部开始、会被顶栏压住一个
@@ -160,8 +147,32 @@ html .main .content .navigation {
       否则滚轮落在没被面板盖住的边角（1vw / 1vh 的余量、侧栏）上仍会推动下面那层列表。
       .browser 的 overflow-y 是内联的 `scroll`（listen1.html），普通规则压不住，只能
       !important；类由 ng-class="{'nowplaying-open': window_type=='track'}" 加。
-      规则放本表而不是 common2.css：common2.css 保持与合并布局前的上游原文一致，
-      fork 追加的外壳补丁都收在这张最后加载的表里。 */
+      规则放本表而不是 common2.css：common2.css 只保留必要的最小改动（前缀去除、
+      死声明与死规则清理），fork 追加的外壳补丁都收在这张最后加载的表里。 */
 .main .content .browser.nowplaying-open {
   overflow-y: hidden !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. 「显示专辑封面作为背景」开启时的两处调整
+      类由 listen1.html 的 ng-class 加在 .footer-main 上（'has-cover-bg'）。
+      刻意不复用 common2.css 里那个 .coverbg：那三条 .coverbg .playsong-detail …
+      是经典分支留下的死规则（全仓库没有地方加这个类），复用会把它们意外唤醒。
+      ① 播放页对下层更不透明：面板底色还是同一个色（--nav-background-color），
+         只是用 color-mix 把它往同色相的实底色（--content-background-color）里掺
+         到 ≈0.84 alpha —— 两套 palette 里这两个颜色的 RGB 本来就一致（浅色都是白、
+         深色都是 #222），所以不会串色，只是变实。不支持 color-mix 的浏览器会丢弃
+         这条声明，退回 .footer-main 原本的 0.75（优雅降级）。
+      ② 封面模糊减弱：.bg 原本 blur(200px)（common2.css），这里减到 120px，
+         contrast / brightness 维持原样。 */
+.footer .footer-main.slidedown.has-cover-bg {
+  background-color: color-mix(
+    in srgb,
+    var(--nav-background-color) 65%,
+    var(--content-background-color)
+  );
+}
+
+.footer .footer-main.has-cover-bg .bg {
+  filter: blur(120px) contrast(75%) brightness(150%);
 }

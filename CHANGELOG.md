@@ -18,10 +18,12 @@
 
 ### Changed
 
+- 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
+- 「显示专辑封面作为背景」开启时（`has-cover-bg` 类）：播放页面板底色往同色相的实底色掺到 ≈0.84 alpha（对下层更不透明），封面层 `.bg` 的模糊由 `blur(200px)` 减到 `120px`（contrast / brightness 不变）
 - 播放页（`.footer` 展开态）改为叠加层：`toggleNowPlaying()` 不再置 `is_window_hidden=0`、不再 `resetWindow()`，曲目列表的 `ng-show` 去掉 `window_type=='list'` 依赖 —— 下层视图保持挂载、滚动位置不丢；关闭走新增快捷路径（只回退视图 + 恢复 offset，不重取数据）；展开期间 `.browser` 用 `nowplaying-open` 锁住底层滚动（`overflow-y: hidden !important`，压过内联的 `scroll`）
 - 新增 `docs/CONVENTIONS.md` §10 分支与发版流程：`main` 原则上只经 `dev` 的 PR 更新、一 PR 一版本、合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`）
 - 顶栏与播放栏的底色透明度由 0.86 降到 0.75（`--nav-background-color`，两套 palette 同步）：两条浮条透一点，自定义壁纸下更明显；同一变量驱动的侧栏顶带卡片与播放列表抽屉一并变透
-- `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，只多 `--nav-height` 与下面那条死声明清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新
+- `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，差异只剩 `--nav-height` 块、删掉的死声明与下面那条死规则清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新
 - 清理遗留：`profile.js` 不再往 `<html>` 写已无消费者的 `data-theme`，`common2.css` 删掉两套 palette 都没定义的死声明 `color: var(--color-text)`，`listen1.html` 去掉不再被引用的 `#common-css` id，i18n 的 `_THEME_MODERN_WHITE` / `_THEME_MODERN_BLACK` 更名 `_THEME_WHITE` / `_THEME_BLACK` 并去掉文案里的"现代"字样
 - 右侧滚动区顶部留白加 5px（`.page` 的 `padding-top` 改为 `calc(var(--nav-height) + 5px)`），内容不再贴着顶栏下缘
 - 版本号约定明确为语义化版本（SemVer）：`MAJOR` 不兼容改动、`MINOR` 向后兼容地新增、`PATCH` 向后兼容地修复；扩展清单只接受纯数字，因此只用三段 `x.y.z`
