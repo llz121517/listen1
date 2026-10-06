@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable global-require */
-/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync addPlayerListener smoothScrollTo lastfm */
+/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm */
 
 function getCSSStringFromSetting(setting) {
   let { backgroundAlpha } = setting;
@@ -22,11 +22,6 @@ function getCSSStringFromSetting(setting) {
       font-size: ${setting.fontSize - 4}px;
     }
     `;
-}
-
-function useModernTheme() {
-  const defaultTheme = localStorage.getObject('theme');
-  return defaultTheme === 'white2' || defaultTheme === 'black2';
 }
 
 function getSafeIndex(index, length) {
@@ -479,10 +474,7 @@ angular.module('listenone').controller('PlayController', [
 
       return result;
     }
-    const mode =
-      isElectron() || getLocalStorageValue('enable_stop_when_close', true)
-        ? 'front'
-        : 'background';
+    const mode = getPlayerMode();
 
     getPlayer(mode).setMode(mode);
     if (mode === 'front') {
@@ -539,13 +531,8 @@ angular.module('listenone').controller('PlayController', [
                 `.playsong-detail .detail-songinfo .lyric p[data-line="${lastObject.lineNumber}"]`
               );
 
-              let windowHeight = document.querySelector(
-                '.playsong-detail .detail-songinfo .lyric'
-              ).offsetHeight;
-              if (useModernTheme()) {
-                windowHeight =
-                  document.querySelector('body').offsetHeight - 100;
-              }
+              const windowHeight =
+                document.querySelector('body').offsetHeight - 100;
 
               const adjustOffset = 30;
               const offset =
@@ -613,24 +600,20 @@ angular.module('listenone').controller('PlayController', [
             $scope.currentPlaying = msg.data.currentPlaying;
             const { length, index } = msg.data.playlist;
 
-            if (useModernTheme()) {
-              $scope.currentIndex = index;
-              $scope.refreshStage(index, length);
-            }
+            $scope.currentIndex = index;
+            $scope.refreshStage(index, length);
 
-            if (useModernTheme()) {
-              const rotatemark = document.getElementById('rotatemark');
-              const circlmark = document.getElementById('circlmark');
-              if (rotatemark !== null && circlmark !== null) {
-                circlmark.classList.add('circlmark');
-                rotatemark.classList.add('rotatemark');
-                circlmark.addEventListener('animationend', () => {
-                  circlmark.classList.remove('circlmark');
-                });
-                rotatemark.addEventListener('animationend', () => {
-                  rotatemark.classList.remove('rotatemark');
-                });
-              }
+            const rotatemark = document.getElementById('rotatemark');
+            const circlmark = document.getElementById('circlmark');
+            if (rotatemark !== null && circlmark !== null) {
+              circlmark.classList.add('circlmark');
+              rotatemark.classList.add('rotatemark');
+              circlmark.addEventListener('animationend', () => {
+                circlmark.classList.remove('circlmark');
+              });
+              rotatemark.addEventListener('animationend', () => {
+                rotatemark.classList.remove('rotatemark');
+              });
             }
 
             if (msg.data.currentPlaying.id === undefined) {

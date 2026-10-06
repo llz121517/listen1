@@ -30,18 +30,6 @@ angular.module('listenone').controller('ProfileController', [
     // listen1.html「[装饰层]」里的壁纸层，样式在 css/custom-background.css，
     // 见 applyCustomBackground()。
     //
-    // 主题也用属性表达给 CSS 用：<html> 上的 data-theme-family 由 setTheme 写，但页面容器
-    // 不一定带得上（`.page[data-theme-family='classic']` 这类选择器要靠它）—— 这里把它同步
-    // 到所有 .page 上，样式表就能按主题族分别给值（顶部留白 49 / 64px 就是这么分的）。
-    const syncThemeFamilyToPages = () => {
-      const family = document.documentElement.getAttribute('data-theme-family');
-      if (!family) {
-        return;
-      }
-      Array.prototype.forEach.call(document.querySelectorAll('.page'), (page) => {
-        page.setAttribute('data-theme-family', family);
-      });
-    };
     $scope.customBackground = false;
     $scope.proxyModes = [
       { name: 'system', displayId: '_PROXY_SYSTEM' },
@@ -225,7 +213,6 @@ angular.module('listenone').controller('ProfileController', [
 
     $scope.initCustomBackground = () => {
       applyCustomBackground();
-      syncThemeFamilyToPages();
     };
 
     if (isElectron()) {
@@ -277,39 +264,30 @@ angular.module('listenone').controller('ProfileController', [
     };
     $scope.setLang(defaultLang);
 
-    let defaultTheme = 'white';
-    if (localStorage.getObject('theme') !== null) {
-      defaultTheme = localStorage.getObject('theme');
-    }
+    // 经典主题（white / black）已整体移除：老用户 localStorage 里可能还留着这两个值，
+    // 按深浅就近迁到现代族（white → white2、black → black2），其余未知值回落到 white2。
+    const legacyThemeMap = { white: 'white2', black: 'black2' };
+    const modernThemes = ['white2', 'black2'];
+    const storedTheme = localStorage.getObject('theme');
+    const defaultTheme =
+      modernThemes.indexOf(storedTheme) !== -1
+        ? storedTheme
+        : legacyThemeMap[storedTheme] || 'white2';
     $scope.setTheme = (theme) => {
       $scope.theme = theme;
       // 壁纸挂在 <html> 的开关属性 + 壁纸层的内联背景上，换 palette 不会把它冲掉，
       // 这里重挂一次，保证写的是当前状态
       $scope.initCustomBackground();
 
-      // DOM 统一为原来的"新版"布局：四个主题共用 common2.css 的结构；经典主题
-      // 另外靠 css/compat-classic.css 做变量别名与外观覆盖，播放栏与"正在播放"
-      // 页由 listen1.html 里的 .classic-player 分支还原成经典 HTML
-      // （样式 css/classic-player.css）。
+      // 只有两套 palette（浅色 / 深色）：换主题就是换 #theme-css 的 href。
       const palettes = {
-        white: 'css/iparanoid.css',
-        black: 'css/origin.css',
         white2: 'css/iparanoid2.css',
         black2: 'css/origin2.css',
       };
-      const structureCss = 'css/common2.css';
-      const classicThemes = ['white', 'black'];
 
       if (palettes[theme] !== undefined) {
-        // data-theme-family 给 css/compat-classic.css 做作用域；
-        // data-theme 只是方便在 DevTools 里看出当前主题
-        document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute(
-          'data-theme-family',
-          classicThemes.includes(theme) ? 'classic' : 'modern'
-        );
+
         document.getElementById('theme-css').href = palettes[theme];
-        document.getElementById('common-css').href = structureCss;
         localStorage.setObject('theme', theme);
       }
       axios.get('images/feather-sprite.svg').then((res) => {

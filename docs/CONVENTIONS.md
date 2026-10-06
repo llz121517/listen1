@@ -11,7 +11,7 @@
 定位一律用**搜索串**：唯一属性串、CSS 选择器、函数/键名、注释标记。
 
 - ✅ `listen1.html` 的 `ng-show="current_tag==2 && is_window_hidden==1"`（精选歌单页）
-- ✅ `.classic-player` 容器、`css/classic-player.css` 的 `.songdetail-wrapper.slidedown`
+- ✅ 播放区容器 `.footer`、`css/common2.css` 的 `.songdetail-wrapper.slidedown`
 - ✅ 标记注释里的方括号令牌 `[精选歌单]`（完整写法 `<!-- ===== [精选歌单] …`）
 - ❌ `listen1.html:612`、`:1392-1520`、`:23-76` —— 任何一次编辑都会让它失真（本项目已因此返工三次）
 
@@ -35,60 +35,63 @@
 ## 3. CHANGELOG 纪律（默认动作，不必等人叮嘱）
 
 - **改完东西就顺手更新 CHANGELOG** —— 哪怕只改注释、文档、样式，也要加一条；只有在明确说"不用改 changelog"时才跳过。
-- **默认写进 `## [Unreleased]`**：按 `### Added` / `### Changed` / `### Fixed` 归类，英文小节标题 + 中文正文。只有在明确说"发版 / 迁移到 x.y.z"时，才起新版本小节 `## [x.y.z] - YYYY-MM-DD` 并把 `[Unreleased]` 留空。
+- **默认写进 `## [Unreleased]`**：按 `### Added` / `### Changed` / `### Removed` / `### Fixed` 归类，英文小节标题 + 中文正文。只有在明确说"发版 / 迁移到 x.y.z"时，才起新版本小节 `## [x.y.z] - YYYY-MM-DD` 并把 `[Unreleased]` 留空。
 - **`### Fixed` 必须自审归因**：每条写完问一句"这个缺陷在本次改动**之前**就存在吗？"
   - 答"是"（上游遗留、此前就有的 bug）→ 留在 `### Fixed`。例：上游英文文案拼写错误（见 `[1.0.0]`）。
-  - 答"不是"（本次改动引入或改变的）→ 移到 `### Changed` 并改成变更口径。例：合并布局后经典主题显示成现代外观 → 写"兼容层把外壳外观换成经典惯用法"，不写"修复经典主题外观"；`.player-modern` 作用域是为隔离**本次合并**引入的串扰 → Changed。
+  - 答"不是"（本次改动引入或改变的）→ 移到 `### Changed` 并改成变更口径。例：合并布局后经典主题显示成现代外观 → 写"兼容层把外壳外观换成经典惯用法"，不写"修复经典主题外观"。
   - 拿不准按"不是"处理（宁可写 Changed）。
 - 一条一改：改到既有条目就把该条目一起更新，不留过期描述；措辞写"做了什么/为什么"，而不是"修好了什么"。
 - **详略度对齐 `[1.0.0]`**：一条一句话（"做了什么"即可，必要时加一个 `；` 从句），**不要详细过头**；细节留给 `docs/INDEX.md`、本文件与代码注释。
 
-## 4. 单套 DOM + 四套 palette
+## 4. 单套 DOM + 两套 palette
 
-- 四个主题（white / black / white2 / black2）共用同一份结构 DOM；`css/common2.css` 是**唯一结构表且恒加载**。
-- palette 只换变量文件：`iparanoid.css`(white) / `origin.css`(black) / `iparanoid2.css`(white2) / `origin2.css`(black2)。
-- **主题族差异只写在** `css/compat-classic.css`（经典族外壳外观）与 `css/classic-player.css`（经典播放区）。不要在 HTML 里加主题判断，也不要让两套 palette 的变量互相覆盖。
-- 播放区规则（以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根）加进 `css/common2.css` 时**必须**带 `.player-modern ` 前缀，否则现代值会漏进经典分支的同名类（踩过：7px 图标内边距 + 圆角、`98vw` 播放栏、毛玻璃菜单、`54vh` 封面、`-webkit-line-clamp` 标题）。
+- 两个主题（white2 / black2）共用同一份结构 DOM；`css/common2.css` 是**唯一结构表且恒加载**。
+- palette 只换变量文件：`iparanoid2.css`(white2) / `origin2.css`(black2)。经典主题族（white / black）与其专属样式（`compat-classic.css` / `classic-player.css` / 经典 palette）已于 2026-10-06 整体移除，见 CHANGELOG。
+- **主题差异只写在 palette 变量文件里**。不要在 HTML 或 `common2.css` 里加主题判断，也不要让两套 palette 的变量互相覆盖。
+- `--nav-height` 定义在 `css/common2.css` 的 `html` 级，是顶栏高度的唯一来源：`.navigation` 自己、`.page` 的顶部留白、`.menu-control-card` 都取它。
+- 播放区规则（以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根）直接写在 `css/common2.css`，**不要**再加 `.player-modern ` 作用域前缀 —— 它是 1.1.0 为隔离经典分支加的，2.0.0 随经典分支一起移除（历史教训：漏加前缀曾把 7px 图标内边距 + 圆角、`98vw` 播放栏、毛玻璃菜单、`54vh` 封面、`-webkit-line-clamp` 标题带进经典播放栏）。
 
-## 5. 经典分支是冻结资产
+## 5. 层叠（z-index）约定
 
-- `listen1.html` 里 `<div class="classic-player" …>` 内的标记**与 git 原版逐行一致**：不加现代 class、不改名、不重排、不插注释（插注释会新增空白文本节点，改变 inline 排版）。
-- 校验方法：与 `git show HEAD:listen1.html` 的对应窗口**逐行比对**（trim 后相等），不要只看"页面能跑"。
-- 要覆盖样式就改 `css/classic-player.css`（选择器一律带 `.classic-player` 前缀），不要动标记。
-
-## 6. 层叠（z-index）约定
-
-- 整个经典播放区是**一个**层叠上下文：`.classic-player { position: relative; z-index: 110 }`。
-- 内部只有两级：播放页 `1` < 播放栏 / 播放列表菜单 `2`。外壳（侧栏 svg、顶栏）与以后新增的任何 z-index 都无法单独压住播放页。
-- 不要把层号散落到播放区子元素上；有新需求先问"是不是仍该由容器统一对外"（根因：播放区**整块**对外只占一个层号，才不会和外壳逐个比大小）。
+- 外壳：侧栏 svg `10`、顶栏 `.navigation` `100`；弹窗 `.shadow` `9999` / `.dialog` `10000`。
+- 播放区：正在播放页 `.songdetail-wrapper` `100`（与顶栏同值，但 DOM 在后，所以压住顶栏）< 播放栏 `.footer` `130`（内部 `main-info` 110 / `menu` 120 / `footer-main` 140）。
+- 层号写在 `css/common2.css` 对应规则的根选择器上，不要散落到子元素。
 - `position: relative` 只造上下文，**不改变**内部 `fixed` 面板的定位上下文（只有 `transform` / `filter` / `contain` / `will-change` 会改）。
 
-## 7. HTML 注释纪律
+## 6. HTML 注释纪律
 
 - 注释必须**整块位于元素开始标签之外**。曾把注释插在 `<div` 与它的属性之间，浏览器把剩余属性当文本渲染，页面直接"炸"（页面上出现 `ng-show="…"` 这些字符串）。
 - 显式检查：**开始标签内部不得出现 `<!--`**；提交前跑一次标签配平。
 - 统计/校验脚本在处理本文件时先剥注释；检索标记时用方括号令牌（`[侧栏]`、`[现代播放区]` …）而不是整行文本（说明部分常变）。
-- 区域标记统一写法 `<!-- ===== [区域] 说明 ===== -->`（**方括号里的 `[区域]` 是稳定检索串**），紧贴该区块开始标签之前（当前 10 处）。
+- 区域标记统一写法 `<!-- ===== [区域] 说明 ===== -->`（**方括号里的 `[区域]` 是稳定检索串**），紧贴该区块开始标签之前（当前 12 处）。
 - 注释里不要写行号（§1）；给读者指路就写搜索串。
 
-## 8. 版本号
+## 7. 版本号
 
+- **语义化版本（SemVer）`MAJOR.MINOR.PATCH`**：不兼容改动升 `MAJOR`（例：`2.0.0` 移除经典主题族）；向后兼容地新增升 `MINOR`；向后兼容地修复升 `PATCH`。
 - 全仓库统一：`package.json` / `package-lock.json`（根 + `packages[""]`）/ `manifest.json` / `manifest_firefox.json` / `config/about.json` / 文档。
-- 扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母、连字符），因此不用 `version_name`。
+- 扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母、连字符），所以只写三段 `x.y.z`：预发布标识与构建元数据（`-beta.1`、`+build`）一律不用，因此也不需要 `version_name`。
+- 本 fork 独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系；未发布的改动记在 CHANGELOG 的 `[Unreleased]`。
 - 发布流程：CHANGELOG 起新小节 `## [x.y.z] - YYYY-MM-DD`、`[Unreleased]` 留空、各处版本号一起改。
 
-## 9. 提交前自检（静态即可跑）
+## 8. 提交前自检（静态即可跑）
 
-1. `listen1.html`：开始标签内无注释、标签配平、主题 `ng-if` 恰好 2 处、`class="body"` 唯一。
-2. 经典分支 348 行与 `HEAD` 逐行一致。
-3. `css/common2.css` 与 `HEAD` 的差异**只有** `.player-modern ` 前缀（去掉前缀后应与 HEAD 字节相同）。
-4. `css/classic-player.css` 每条规则都带 `.classic-player` 前缀；层叠链"外壳 < 110"、内部 `1 < 2`。
-5. CHANGELOG 已按 §3 更新：新条目在 `[Unreleased]`、小节顺序 `Unreleased → 最新 → 旧版`、`Fixed` 项逐条自审过归因。
-6. 文档里新增/改动的定位串能在代码里唯一检索到；若保留了行号，确认它指向非空行。
+1. `listen1.html`：开始标签内无注释、标签配平、无主题 `ng-if`（只有一套布局）、`class="body"` 唯一。
+2. 播放区规则直接以播放区类为根（不加作用域前缀）；`css/common2.css` 不写 palette 实色值（配色一律走变量）。
+3. `css/*.css` 里用到的 `var(--x)` 都有定义（新增变量要连同 `html` 级定义一起加，`--nav-height` 是例子）。
+4. CHANGELOG 已按 §3 更新：新条目在 `[Unreleased]`、小节顺序 `Unreleased → 最新 → 旧版`、`Fixed` 项逐条自审过归因。
+5. 文档里新增/改动的定位串能在代码里唯一检索到；若保留了行号，确认它指向非空行。
 
-## 10. 临时文件与提交范围
+## 9. 临时文件与提交范围
 
 - 调试脚本用 `.tmp-*` 命名，**用完即删**，不要提交。
 - 个人研究/素材（如 `.tmp-research*/`、`docs/LIVE2D_*.md`）不属于仓库内容，不要 `git add -A`；提交时按路径显式添加。
 - 提交信息用 Conventional Commits（英文短标题，必要时补正文说明"改了什么、为什么"）。
 - **只在被明确要求"提交 / 推送"时才 `git commit` / `git push`**；其余时候改完就停在工作区，等人发话。
+
+## 10. 分支与发版流程
+
+- **`main` 原则上只通过 `dev` 的 PR 更新**：日常改动先落到 `dev`，再由 `dev` 开 PR 合并进 `main`；不直接在 `main` 上提交（紧急修复也走同一条路径，避免两套口径）。
+- **一 PR 一版本**：一个 PR 只对应一次版本号递增（§7 的 SemVer）。提 PR 前，该 PR 里必须已经包含：CHANGELOG 起好该版本的小节 `## [x.y.z] - YYYY-MM-DD`、`[Unreleased]` 留空、全仓库版本号同步改完。
+- **合并提交标题 = 日期 + 版本号**：形如 `2026-10-06 2.1.0`（`YYYY-MM-DD x.y.z`，日期取合并当天）。因此合并**必须产生合并提交**（`git merge --no-ff` 或 GitHub 的 merge commit），不要用 squash / rebase 合并 —— 否则这个标题留不下来。
+- PR 内的普通提交照旧用 Conventional Commits（§9）；合并提交只承载"日期 + 版本号"，不再写别的。

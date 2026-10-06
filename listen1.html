@@ -12,27 +12,24 @@
     <link href="css/notyf.min.css" rel="stylesheet" />
     <link href="css/notyf_custom.css" rel="stylesheet" />
 
-    <link href="css/hotkeys.css" rel="stylesheet" />
     <link href="css/icon.css" rel="stylesheet" />
 
-    <link href="css/iparanoid.css" rel="stylesheet" id="theme-css" />
-    <link href="css/common2.css" rel="stylesheet" id="common-css" />
-    <link href="css/compat-classic.css" rel="stylesheet" id="compat-css" />
-    <link href="css/classic-player.css" rel="stylesheet" />
+    <link href="css/iparanoid2.css" rel="stylesheet" id="theme-css" />
+    <link href="css/common2.css" rel="stylesheet" />
     <link href="css/custom-background.css" rel="stylesheet" />
 
     <!--
       ===========================================================================
       【先读这里】listen1.html：结构地图 / 纪律 / 坑点
       ===========================================================================
-      本 fork 把原来的两套布局合成"一套 DOM + 4 套 palette"：四个主题共用下面这套"新版"
-      结构，经典主题（white / black）的播放栏与"正在播放"页再用 ng-if 切回原版标记。
+      本页只有一套结构 + 两套 palette（white2 / black2）：主题只换变量文件，外壳与播放区
+      都只有一条路径。经典主题族（white / black）及其专属样式已整体移除，见 CHANGELOG 的
+      Removed 条目。
 
       ■ 样式表加载顺序（见上面的 <link>，顺序不要动）
-        iparanoid.css(#theme-css，palette) → common2.css(#common-css，唯一结构表，恒加载)
-        → compat-classic.css(#compat-css，经典族外观兼容，全部限定 html[data-theme-family='classic'])
-        → classic-player.css（经典播放区专用，选择器一律 .classic-player 前缀）
-        data-theme / data-theme-family 由 js/controller/profile.js 的 setTheme 写在 <html> 上。
+        iparanoid2.css(#theme-css，palette；setTheme 按主题换它的 href)
+        → common2.css（唯一结构表，恒加载；静态 <link>，不再由 JS 改写）
+        → custom-background.css（自定义背景 + 顶栏 / 侧栏顶带的几何）
 
       ■ 结构地图（按下面的 [区域] 标记注释定位；文档不写行号，约定见 docs/CONVENTIONS.md）
         [对话框]      .shadow + 各 dialog 模板
@@ -44,33 +41,25 @@
         [设置页]      ng-show="current_tag==4 && is_window_hidden"
         [登录页]      ng-show="current_tag==5 && is_window_hidden"
         [曲目列表]    ng-show="window_type=='list'"
-        [经典播放区]  ng-if="theme==='white' || theme==='black'"（原版标记，勿改）
-        [现代播放区]  ng-if="theme==='white2' || theme==='black2'"
+        [现代播放区]  .footer 播放栏 + .songdetail-wrapper 展开页（唯一实现）
 
       ■ 纪律（破一条就静默出错：不报错、只是"看着不对"）
-        1. 播放区选择器必须带 .player-modern 作用域。common2.css 里 150 处（139 条规则）以 .footer /
-           .songdetail-wrapper / .playsong-detail / .volume-ctrl 为根的选择器都加了
-           .player-modern 前缀，只有现代播放区有这个祖先。新增播放区规则漏加前缀，现代的值就会
-           漏进经典分支的同名类（踩过：图标 7px 内边距 + 圆角、播放栏 98vw + 1vh 边距、毛玻璃
-           播放菜单、54vh 封面、-webkit-line-clamp 标题）。
-        2. 经典分支（.classic-player 内）的标记与 git 原版逐行一致：不要加现代 class、不要改名；
-           它的样式只归 classic-player.css + compat-classic.css。
-        3. 主题族差异只写在 compat-classic.css / classic-player.css，不要在 HTML 里加主题判断，
-           也不要让两套 palette 的变量互相覆盖。
-        4. z-index 顺序：外壳（侧栏 svg 10、顶栏 100）< 经典播放区 .classic-player 整块 110 <
-           弹窗 9999/10000；播放区内部只有两级：播放页 1 < 播放栏 / 播放列表菜单 2。层号写在
-           .classic-player 容器上（整块一个层叠上下文），外壳以后再加 z-index 也压不住播放页。
-        5. 经典播放页收起是 transform 整页下滑（见 classic-player.css），不要改回 top 挤压写法，
-           否则封面背景会被压扁，看起来像"背景先消失"。
+        1. 播放区选择器直接以播放区类为根（.footer / .songdetail-wrapper / .playsong-detail /
+           .volume-ctrl），写在 common2.css。它们曾经统一带 .player-modern 前缀以隔离经典分支，
+           经典分支已于 2.0.0 移除、前缀随之去掉，common2.css 因此回到合并布局前的上游原文
+           （只多 --nav-height）。**不要再把前缀加回来。**
+        2. 主题差异只写在 palette 变量文件（css/iparanoid2.css / css/origin2.css）：不要在
+           common2.css 或 HTML 里加主题判断，也不要让两套 palette 的变量互相覆盖。
+        3. z-index 顺序：外壳（侧栏 svg 10、顶栏 100）< 正在播放页 .songdetail-wrapper 100
+           （与顶栏同值但 DOM 在后，所以压住顶栏）< 播放栏 .footer 130（内部 110 / 120 / 140）
+           < 弹窗 9999 / 10000。
 
       ■ 坑点
-        · 同名 id 有多份：#hotplaylist / #playlist-content（精选歌单页 + 我的平台页）、#progressbar /
-          #volumebar（经典播放栏 + 现代播放栏）、#song{{song.id}}（播放队列多处）。document.getElementById
-          只返回文档里第一个，所以 navigation.js 的 f 快捷键（hotkeys('f') 里的 getElementById）聚焦的永远是导航那个（歌单内搜索框已从
-          #search-input 改名 #playlist-search-input，消掉这一处同名）；分支互斥的同名 id 无碍，
-          可能同时可见的要留意取到的未必是想要的那个。
-        · 经典族未定义的 CSS 自定义属性会让整条声明失效（例：color-text 只服务 white2/black2），
-          改 compat 的变量别名时要连消费者一起看。
+        · 同名 id 有多份：#hotplaylist / #playlist-content（精选歌单页 + 我的平台页）、
+          #song{{song.id}}（播放队列多处）。document.getElementById 只返回文档里第一个，
+          所以 navigation.js 的 f 快捷键（hotkeys('f') 里的 getElementById）聚焦的永远是导航
+          那个（歌单内搜索框已从 #search-input 改名 #playlist-search-input）。
+
         · 用脚本解析本文件的 class 时别用 /class="([^"]*)"/：文件里有 ng-class 写在 class 之前的
           标签（如现代播放区的 .songdetail-wrapper），会误命中 ng-class 的值。
       ===========================================================================
@@ -78,12 +67,7 @@
 
     <link href="images/logo_16.png" rel="shortcut icon" />
     <link href="images/logo_16.png" rel="bookmark" />
-    <script>
-      if (typeof module === 'object') {
-        window.module = module;
-        module = undefined;
-      }
-    </script>
+    <script type="text/javascript" src="js/module_guard_hide.js"></script>
     
     <script type="text/javascript" src="js/vendor/angular.min.js"></script>
     <script src="js/vendor/i18next.min.js"></script>
@@ -129,9 +113,7 @@
       type="text/javascript"
       src="js/controller/instant_search.js"
     ></script>
-    <script>
-      if (window.module) module = window.module;
-    </script>
+    <script type="text/javascript" src="js/module_guard_restore.js"></script>
 
   </head>
 
@@ -425,13 +407,13 @@
                 </div>
 
                 <div class="main" ng-controller="MyPlayListController">
-                  <!-- ===== [侧栏] .sidebar：可折叠，经典族外观由 compat-classic.css 还原 ===== -->
+                  <!-- ===== [侧栏] .sidebar：可折叠（.sidebar-content / .opensidebar 控制宽窄） ===== -->
                   <div class="sidebar">
-                    <!-- 顶栏区占位：与右侧 .navigation 同一横带（经典族两边都是 46px，见 compat-classic.css），
-                         本身是拖拽区、无内容；放在滚动容器之外，不跟着侧栏内容滚。 -->
+                    <!-- 顶栏区占位：与右侧 .navigation 同一横带，本身是拖拽区、无内容；放在滚动容器
+                         之外，不跟着侧栏内容滚。 -->
                     <!-- 侧栏顶栏区：.menu-control 是拖拽用的占位带（顶开 .flex-scroll-wrapper），
-                         外面套一层定位容器放 .menu-control-card —— 那块卡片与右侧 .navigation
-                         同一横带、同底色，两种主题族都铺满这条带；顶栏按钮不动。 -->
+                         外面套一层定位容器放 .menu-control-card —— 卡片与右侧 .navigation 同高同底色，
+                         铺满这条带并延伸到窗口左边缘；顶栏按钮不动。 -->
                     <div class="menu-control-wrap">
                       <div class="menu-control"></div>
                       <div class="menu-control-card"></div>
@@ -694,7 +676,7 @@
                                   />
                                   <div
                                       class="covershadow"
-                                      style="background-image:url({{i.cover_img_url}});"
+                                      ng-style="{'background-image': 'url(' + (i.cover_img_url || '') + ')'}"
                                     ></div>
                                   <div
                                     class="bottom"
@@ -754,7 +736,7 @@
                                   />
                                   <div
                                       class="covershadow"
-                                      style="background-image:url({{i.cover_img_url}});"
+                                      ng-style="{'background-image': 'url(' + (i.cover_img_url || '') + ')'}"
                                     ></div>
                                   <div
                                     class="bottom"
@@ -988,7 +970,7 @@
                                       ng-src="{{ playlist.img_url }}?param=512y512"
                                       err-src="https://y.gtimg.cn/mediastyle/global/img/playlist_300.png"
                                       />
-                                      <div class="covershadow" style="background-image:url({{playlist.img_url}}?param=512y512);"></div>
+                                      <div class="covershadow" ng-style="{'background-image': 'url(' + (playlist.img_url || '') + '?param=512y512)'}"></div>
                                       <div 
                                       ng-click="directplaylist(playlist.id)"
                                       class="bottom" style="height:50px;width:50px">
@@ -1055,28 +1037,16 @@
                             <div class="settings-content">
                               <div>
                                 <button
-                                  class="theme-button"
-                                  ng-click="setTheme('white')"
-                                >
-                                  {{_THEME_WHITE}}
-                                </button>
-                                <button
-                                  class="theme-button"
-                                  ng-click="setTheme('black')"
-                                >
-                                  {{_THEME_BLACK}}
-                                </button>
-                                <button
                                 class="theme-button"
                                 ng-click="setTheme('white2')"
                               >
-                                {{_THEME_MODERN_WHITE}}
+                                {{_THEME_WHITE}}
                               </button>
                               <button
                                 class="theme-button"
                                 ng-click="setTheme('black2')"
                               >
-                                {{_THEME_MODERN_BLACK}}
+                                {{_THEME_BLACK}}
                               </button>
                               </div>
                             </div>
@@ -1618,8 +1588,7 @@
                                   >{{about.feedback.desktop}}</a
                                 >
                               </p>
-                              <p>{{_DESIGNER}} ({{_THEME_WHITE}}): {{about.designers.white}}</p>
-                              <p>{{_DESIGNER}} ({{_THEME_MODERN_BLACK}}, {{_THEME_MODERN_WHITE}}): {{about.designers.modern}}</p>
+                              <p>{{_DESIGNER}} ({{_THEME_BLACK}}, {{_THEME_WHITE}}): {{about.designers.modern}}</p>
                               <p>{{_VERSION}}: {{about.version}} {{_LICENSE_NOTICE}}</p>
                               <p ng-show='lastestVersion!=""'>
                                 {{_LATEST_VERSION}}: {{lastestVersion}}
@@ -1694,7 +1663,7 @@
                               />
                               <div
                               class="covershadow"
-                              style="background-image:url({{cover_img_url}});opacity: 1;"
+                              ng-style="{'background-image': 'url(' + (cover_img_url || '') + ')', opacity: 1}"
                             ></div>
                             <div
                             class="bottom"
@@ -1924,365 +1893,10 @@
                     </div>
                   </div>
                 </div>
-                <!-- 经典主题：原版播放栏 + 原版"正在播放"页（样式见 css/classic-player.css）；
-                     这两段 HTML 来自旧的经典布局，只在 white / black 主题下渲染，勿删。
-                     纪律：本块标记与 git 原版逐行一致（docs/INDEX.md §7.1），不要加现代 class、
-                     不要改名；同名类一旦被 common2.css 的现代规则命中，就会重现上一轮的显示异常。
-                     层级：本容器 .classic-player 整块占 z-index 110（层叠上下文），内部 播放页 1 < 播放栏 2。 -->
-
-                <div class="classic-player" ng-if="theme==='white' || theme==='black'">
-                  <div
-                    class="songdetail-wrapper"
-                    ng-class="{slidedown: window_type!=='track', coverbg: enableNowplayingCoverBackground}"
-                  >
-                    <div class="draggable-zone"></div>
-                    <div
-                      ng-if="enableNowplayingCoverBackground"
-                      class="bg"
-                      ng-style="{'background-image': 'url(' + currentPlaying.img_url + ')'}"
-                    ></div>
-                    <div
-                      class="translate-switch"
-                      ng-click="toggleLyricTranslation()"
-                      ng-class="{selected: enableLyricTranslation}"
-                    >
-                      译
-                    </div>
-                    <div
-                      class="close"
-                      ng-class="isMac? 'mac':'' "
-                      ng-click="popWindow()"
-                    >
-                      <svg class="icon">
-                        <use href="#chevron-down"></use>
-                      </svg>
-                    </div>
-
-                    <div ng-if="!isChrome && !isMac" class="window-control">
-                      <svg class="icon" window-control="window_min">
-                        <use href="#minimize-2"></use>
-                      </svg>
-                      <svg class="icon" window-control="window_max">
-                        <use href="#maximize"></use>
-                      </svg>
-                      <svg class="icon" window-control="window_close">
-                        <use href="#x"></use>
-                      </svg>
-                    </div>
-
-                    <div class="playsong-detail">
-                      <div class="detail-head">
-                        <div class="detail-head-cover">
-                          <img
-                            ng-src="{{ currentPlaying.img_url  }}"
-                            err-src="https://y.gtimg.cn/mediastyle/global/img/album_300.png"
-                          />
-                        </div>
-                        <div class="detail-head-title">
-                          <!--<a title="加入收藏" class="clone" ng-click="showDialog(0, currentPlaying)">收藏</a>
-            <a open-url="currentPlaying.source_url" title="原始链接" class="link">原始链接</a>-->
-                        </div>
-                      </div>
-                      <div class="detail-songinfo">
-                        <div class="title">
-                          <h2>{{ currentPlaying.title }}</h2>
-                          <span
-                            class="badge"
-                            ng-if="enableNowplayingBitrate && currentPlaying.bitrate !== undefined"
-                            >{{ currentPlaying.bitrate }}</span
-                          >
-                          <span
-                            class="badge platform"
-                            ng-if="enableNowplayingPlatform && currentPlaying.platform !== undefined"
-                            >{{ currentPlaying.platformText }}</span
-                          >
-                        </div>
-                        <div class="info">
-                          <div class="singer">
-                            <span>{{_ARTIST}}： </span
-                            ><a
-                              ng-click="showPlaylist(currentPlaying.artist_id)"
-                              title="{{currentPlaying.artist}}"
-                              >{{ currentPlaying.artist }}</a
-                            >
-                          </div>
-                          <div class="album">
-                            <span>{{_ALBUM}}： </span
-                            ><a
-                              ng-click="showPlaylist(currentPlaying.album_id)"
-                              title="{{currentPlaying.album}}"
-                              >{{ currentPlaying.album }}</a
-                            >
-                          </div>
-                        </div>
-                        <div class="lyric">
-                          <div class="placeholder"></div>
-                          <p
-                            ng-repeat="line in lyricArray track by $index"
-                            data-line="{{line.lineNumber}}"
-                            ng-class="{ 'highlight': (line.lineNumber == lyricLineNumber) || (line.lineNumber == lyricLineNumberTrans) , hide: (line.translationFlag && !enableLyricTranslation), translate: line.translationFlag}"
-                          >
-                            {{ line.content }}
-                          </p>
-                          <div class="placeholder"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="footer">
-                    <div class="left-control">
-                      <span class="icon li-previous" prev-track=""></span>
-                      <span
-                        class="icon li-play play"
-                        ng-class="isPlaying? 'li-pause': 'li-play'"
-                        play-pause-toggle=""
-                      ></span>
-                      <span class="icon li-next" next-track=""></span>
-                    </div>
-                    <div class="main-info">
-                      <div class="logo-banner" ng-if="playlist.length == 0">
-                        <svg
-                          class="logo"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          viewBox="0 0 24 24"
-                          fill="#666666"
-                          stroke="#666666"
-                          stroke-width="1"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <polygon
-                            points="7 4 7 19 16 19 16 16 10 16 10 4"
-                          ></polygon>
-                          <polygon points="13 4 13 13 16 13 16 4"></polygon>
-                        </svg>
-                      </div>
-                      <div
-                        class="cover"
-                        class="cover"
-                        ng-if="playlist.length > 0"
-                        ng-click="toggleNowPlaying()"
-                      >
-                        <img
-                          ng-src="{{ currentPlaying.img_url }}"
-                          err-src="https://y.gtimg.cn/mediastyle/global/img/album_300.png"
-                        />
-                        <!-- Switching icon when hover -->
-                        <div class="mask">
-                          <svg class="feather" ng-if="getCurrentUrl() != '/now_playing'">
-                            <use href="#chevrons-up"></use>
-                          </svg>
-                          <svg class="feather" ng-if="getCurrentUrl() === '/now_playing'">
-                            <use href="#chevrons-down"></use>
-                          </svg>
-                        </div>
-                      </div>
-                      <div class="detail" ng-if="playlist.length > 0">
-                        <div class="ctrl">
-                          <a
-                            ng-click="showDialog(0, currentPlaying)"
-                            title="{{_ADD_TO_PLAYLIST}}"
-                          >
-                            <span class="icon li-songlist"></span>
-                          </a>
-                          <a
-                            title="{{ settings.playmode | playmode_title }}(s)"
-                            ng-click="changePlaymode()"
-                          >
-                            <span
-                              ng-show="settings.playmode == 0"
-                              class="icon li-loop"
-                            ></span>
-                            <span
-                              ng-show="settings.playmode == 1"
-                              class="icon li-random-loop"
-                            ></span>
-                            <span
-                              ng-show="settings.playmode == 2"
-                              class="icon li-single-cycle"
-                            ></span>
-                          </a>
-                        </div>
-
-                        <div class="title">
-                          <span
-                            ng-if="currentPlaying.source === 'xiami'"
-                            style="color: orange; font-size: medium"
-                            >⚠️ </span
-                          >{{ currentPlaying.title }}
-                        </div>
-                        <div class="more-info">
-                          <div class="current">{{ currentPosition }}</div>
-                          <div class="singer">
-                            <a ng-click="showPlaylist(currentPlaying.artist_id)"
-                              >{{ currentPlaying.artist }}</a
-                            >
-                            -
-                            <a ng-click="showPlaylist(currentPlaying.album_id)"
-                              >{{ currentPlaying.album }}</a
-                            >
-                          </div>
-                          <div class="total">{{ currentDuration }}</div>
-                        </div>
-                        <div class="playbar">
-                          <div class="playbar-clickable">
-                            <div
-                              class="barbg"
-                              id="progressbar"
-                              mode="play"
-                              draggable-bar=""
-                            >
-                              <div
-                                class="cur"
-                                ng-style="{width : myProgress + '%' }"
-                              >
-                                <span class="btn"><i></i></span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="right-control">
-                      <div class="playlist-toggle">
-                        <span
-                          ng-click="togglePlaylist()"
-                          class="icon li-list"
-                        ></span>
-                      </div>
-                      <div class="volume-ctrl" volume-wheel="">
-                        <span
-                          class="icon"
-                          ng-class="mute? 'li-mute': 'li-volume'"
-                          ng-click="toggleMuteStatus()"
-                        ></span>
-                        <div class="m-pbar volume">
-                          <div
-                            class="barbg"
-                            id="volumebar"
-                            mode="volume"
-                            draggable-bar=""
-                          >
-                            <div class="cur" ng-style="{width : volume + '%' }">
-                              <span class="btn"><i></i></span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div ng-if="!isChrome" class="lyric-toggle">
-                        <div
-                          ng-click="openLyricFloatingWindow(true)"
-                          class="lyric-icon"
-                          ng-class="{'selected': enableLyricFloatingWindow}"
-                        >
-                          词
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      class="menu-modal"
-                      ng-class="{slideup: !menuHidden}"
-                      ng-click="togglePlaylist()"
-                    ></div>
-                    <div class="menu" ng-class="{slideup: !menuHidden}">
-                      <div class="menu-header">
-                        <span class="menu-title"
-                          >{{_TOTAL_SONG_PREFIX}}{{playlist.length}}{{_TOTAL_SONG_POSTFIX}}</span
-                        >
-                        <a class="add-all" ng-click="showDialog(0, playlist)">
-                          <span
-                            class="icon li-songlist"
-                            ng-click="togglePlaylist()"
-                          ></span>
-                          <span>{{_ADD_TO_PLAYLIST}}</span></a
-                        >
-                        <a class="remove-all" clear-playlist=""
-                          ><span
-                            class="icon li-del"
-                            ng-click="togglePlaylist()"
-                          ></span
-                          ><span>{{_CLEAR_ALL}}</span></a
-                        >
-
-                        <a class="close" ng-click="togglePlaylist()"
-                          ><svg class="feather">
-                            <use href="#x"></use>
-                          </svg>
-                        </a>
-                      </div>
-                      <ul class="menu-list">
-                        <li
-                          id="song{{ song.id }}"
-                          ng-repeat="song in playlist track by $index"
-                          ng-class="{ playing: currentPlaying.id == song.id }"
-                          ng-mouseenter="playlist_highlight=true"
-                          ng-mouseleave="playlist_highlight=false"
-                          ng-dblclick="playById(song.id)"
-                          ng-class-odd="'odd'"
-                          ng-class-even="'even'"
-                          draggable="true"
-                          drag-drop-zone
-                          drag-zone-object="song"
-                          drag-zone-title="song.title"
-                          sortable="true"
-                          drag-zone-type="'application/listen1-song'"
-                          drop-zone-ondrop="onCurrentPlayingSongDrop(song, arg1, arg2, arg3)"
-                        >
-                          <div class="song-status-icon">
-                            <svg
-                              class="feather play"
-                              ng-show="currentPlaying.id == song.id"
-                            >
-                              <use href="#play"></use>
-                            </svg>
-                          </div>
-                          <div
-                            class="song-title"
-                            ng-class="song.disabled? 'disabled':'' "
-                          >
-                            <a play-from-playlist="song"
-                              ><span
-                                ng-if="song.source === 'xiami'"
-                                style="
-                                  color: orange;
-                                  border-radius: 12px;
-                                  border: solid 1px;
-                                  padding: 0 4px;
-                                "
-                                >⚠️ 🦐</span
-                              >{{ song.title }}</a
-                            >
-                          </div>
-                          <div class="song-singer">
-                            <a
-                              ng-click="showPlaylist(song.artist_id); togglePlaylist();"
-                              >{{ song.artist }}</a
-                            >
-                          </div>
-                          <div class="tools">
-                            <span
-                              remove-from-playlist="song"
-                              data-index="{{$index}}"
-                              ng-show="playlist_highlight"
-                              class="icon li-del"
-                            ></span>
-                            <span
-                              open-url="song.source_url"
-                              ng-show="playlist_highlight"
-                              class="icon li-link"
-                            ></span>
-                          </div>
-                          <!-- <div class="song-time">00:00</div> -->
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-                <!-- ===== [现代播放区] theme==='white2' || theme==='black2'：B 的结构。
-                     纪律：不要删 .player-modern 这个 class —— common2.css 的播放区选择器都以它为作用域。 ===== -->
-                <div class="player-modern" ng-if="theme==='white2' || theme==='black2'">
+                <!-- ===== [现代播放区] 播放区的唯一实现。
+                     样式见 css/common2.css 的播放区段：选择器直接以 .footer / .songdetail-wrapper
+                     为根，2.0.0 起不再有 .player-modern 作用域前缀。 ===== -->
+                <div>
                 <div class="footer" ng-class="{footerdef:playlist.length == 0}">
                   
                   <div class="footer-main" ng-style="{background}"  ng-class="{slidedown: window_type=='track'}">
@@ -2323,7 +1937,7 @@
                     <div class="detail-head">
                       <div>
                       <div class="detail-head-cover">
-                        <div ng-if="window_type=='track'"  class="covershadow" style="background-image:url({{currentPlaying.img_url}}?param=224y224);opacity: 1;z-index: -1;"></div>
+                        <div ng-if="window_type=='track'"  class="covershadow" ng-style="{'background-image': 'url(' + (currentPlaying.img_url || '') + '?param=224y224)', opacity: 1, 'z-index': -1}"></div>
                         <img
                       
                         id="trackbackground" 
