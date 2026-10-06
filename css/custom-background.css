@@ -91,10 +91,48 @@ html[data-custom-background='1']
 }
 
 /* --------------------------------------------------------------------------
-   3. 侧栏顶栏卡片 .menu-control-card（经典 / 现代通用）
+   3. 顶部留白（经典 + 现代）
+      两个主题族的顶栏都是流外（classic 49px / modern 64px）、贴顶，所以内容流从容器顶部
+      开始、会被顶栏压住一个顶栏高度。留白用 .page 的 padding-top 给：padding 属于 .page
+      自己的盒子，那块区域因此**仍是面板**，自定义背景的玻璃自然盖住它（放在 .page 外面的
+      空 div 会露出一条没有玻璃的壁纸，看着像"把面板顶掉了"）。
+      高度取 --nav-height（compat-classic.css 里按主题族给）；属性 .page[data-theme-family]
+      由 js/controller/profile.js 的 syncThemeFamilyToPages() 写，属性相等匹配可以避开
+      "祖先匹配在现代族也成立、且特异性更高"的坑。 */
+.page[data-theme-family='classic'],
+.page[data-theme-family='modern'] {
+  padding-top: var(--nav-height);
+}
+
+/* --------------------------------------------------------------------------
+   4. 顶栏去掉右侧 20px 余量
+      common2.css 给 .navigation 留了 margin-right: 20px，顶栏因此铺不到窗口右边缘。
+      这里覆盖掉：选择器加 html 前缀凑到更高特异性（否则同特异性下虽然后加载也赢，但）
+      改动更稳）；顶栏铺满整宽，内部排布不动、按钮位置不变。 */
+html .main .content .navigation {
+  margin-right: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. 隐藏滚动条（滚动照旧，只是不画那条）
+      顶栏是流外的（classic 49px / modern 64px）、铺到窗口右边缘，叠加 z-index: 100 —— 那条
+      滚动条本来就会被顶栏压住。与其为它调位置/层级，直接把滚动条隐掉：内容仍可滚，右侧不再
+      出现被压一半的滚动条。.browser 是内联 overflow-y: scroll 的滚动容器，common2.css 那套
+      ::-webkit-scrollbar 样式（8px 灰条）在这里一并覆盖掉。 */
+.main .content .browser {
+  scrollbar-width: none;
+}
+
+.main .content .browser::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   6. 侧栏顶栏卡片 .menu-control-card（经典 / 现代通用）
      侧栏那条 .menu-control 占位带外面套了 .menu-control-wrap，卡片绝对定位铺满它，
      与右侧 .navigation 同一横带、同一底色。顶栏因此不必再横向延伸去"盖"侧栏，
-     按钮位置保持原样。
+      按钮位置保持原样。
      取色注意：--nav-background-color 只在现代 palette（iparanoid2 / origin2）里有定义，
      经典 palette（iparanoid / origin）没有 —— 直接用它会在经典族取不到值而变透明，
      所以经典族改用不透明的 --content-background-color（与侧栏同色）。
@@ -103,6 +141,8 @@ html[data-custom-background='1']
 .menu-control-wrap {
   position: relative;
   --menu-control-card-bg: var(--nav-background-color, var(--content-background-color));
+  /* 侧栏顶栏带的高度：卡片按它取高（现代 79px、经典 49px），与顶栏高度变量分开 */
+  --menu-control-height: 79px;
 }
 
 html[data-theme-family='classic'] .menu-control-wrap {
@@ -120,17 +160,20 @@ html[data-theme-family='classic'] .menu-control-wrap {
   background-color: var(--menu-control-card-bg);
 }
 
-/* 经典族：卡片占满整条带（flex 拉伸，宽度跟侧栏一致） */
+/* 经典族：卡片占满整条带（flex 拉伸，宽度跟侧栏一致），贴顶与右侧顶栏齐平 */
 html[data-theme-family='classic'] .menu-control-card {
   position: static;
   display: block;
   flex: 1;
 }
 
-/* 现代族：与悬浮毛玻璃顶栏同款（同色 + 同模糊） */
+/* 现代族：与悬浮毛玻璃顶栏同款（同色 + 同模糊），高度与侧栏那条 .menu-control 占位带一致
+   （--menu-control-height：现代 79px、经典 49px），贴顶（absolute + top: 0）。
+   注意与 --nav-height 分开：**顶栏高度不动**，卡片跟的是侧栏带宽。 */
 html[data-theme-family='modern'] .menu-control-card,
 html:not([data-theme-family]) .menu-control-card {
   display: block;
+  height: var(--menu-control-height, 79px);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }

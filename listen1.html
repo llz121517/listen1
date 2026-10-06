@@ -561,10 +561,6 @@
                   </div>
 
                   <div class="content" ng-controller="InstantSearchController">
-                    <!-- 右侧流顶部占位：把顶栏（以及它下面的内容）整体让到左侧侧栏那条
-                         顶栏卡片带下方 —— 两侧顶栏区同高、齐平。高度与卡片一致（49px），
-                         顶栏本身由 compat-classic.css 设成 fixed + top: 49px 贴在这块下面。 -->
-                    <div class="nav-spacer"></div>
                 <!-- ===== [导航] .navigation：全局搜索框 #search-input 与窗口按钮 ===== -->
                     <div class="navigation">
                       <div class="backfront">
@@ -687,9 +683,6 @@
                           </div>
                         </div>
                         <div class="site-wrapper-innerd" id="hotplaylist">
-                          <!-- 悬浮顶栏留白：放在面板容器（.site-wrapper-innerd）里、#playlist-content **之外**，
-                               面板才会随留白一起长高；放深一层只会把卡片往下压、上方露出没有面板的一截 -->
-                          <div style="height: 64px;"></div>
                           <div class="cover-container" id="playlist-content">
                             <ul  ng-style="{'padding-bottom':playlist.length == 0?'0px':'120px'}" class="playlist-covers">
                               <li ng-repeat="i in result ">
@@ -750,9 +743,6 @@
                           ></div>
                         </div>
                         <div class="site-wrapper-innerd" id="hotplaylist">
-                          <!-- 悬浮顶栏留白：放在面板容器（.site-wrapper-innerd）里、#playlist-content **之外**，
-                               面板才会随留白一起长高；放深一层只会把卡片往下压、上方露出没有面板的一截 -->
-                          <div style="height: 64px;"></div>
                           <div class="cover-container" id="playlist-content">
                             <ul ng-style="{'padding-bottom':playlist.length == 0?'0px':'140px'}"  class="playlist-covers">
                               <li ng-repeat="i in myPlatformPlaylists">

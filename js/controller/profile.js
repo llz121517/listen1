@@ -29,6 +29,19 @@ angular.module('listenone').controller('ProfileController', [
     // 自定义背景：壁纸存 data URL（localStorage.custom_background）。DOM 落点是
     // listen1.html「[装饰层]」里的壁纸层，样式在 css/custom-background.css，
     // 见 applyCustomBackground()。
+    //
+    // 主题也用属性表达给 CSS 用：<html> 上的 data-theme-family 由 setTheme 写，但页面容器
+    // 不一定带得上（`.page[data-theme-family='classic']` 这类选择器要靠它）—— 这里把它同步
+    // 到所有 .page 上，样式表就能按主题族分别给值（顶部留白 49 / 64px 就是这么分的）。
+    const syncThemeFamilyToPages = () => {
+      const family = document.documentElement.getAttribute('data-theme-family');
+      if (!family) {
+        return;
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('.page'), (page) => {
+        page.setAttribute('data-theme-family', family);
+      });
+    };
     $scope.customBackground = false;
     $scope.proxyModes = [
       { name: 'system', displayId: '_PROXY_SYSTEM' },
@@ -212,6 +225,7 @@ angular.module('listenone').controller('ProfileController', [
 
     $scope.initCustomBackground = () => {
       applyCustomBackground();
+      syncThemeFamilyToPages();
     };
 
     if (isElectron()) {

@@ -127,18 +127,41 @@ html[data-theme-family='classic'] .sidebar .menu-control {
 }
 
 /* 顶部导航条 + 侧栏顶栏区：
-   原版经典是"46px 平面条、在流内、无底色"（common.css:170-177）；现在是流外（absolute），
+   原版经典是"46px 平面条、在流内、无底色"（common.css:170-177）；现在是流外（absolute、贴顶），
    与左侧 .menu-control-card 同高 49px（比原版高 3px，顶栏那排控件不贴上下边）。
    顶部区不再靠顶栏横向延伸来"盖"侧栏 —— 侧栏那条 .menu-control 占位带自己套了一层
    .menu-control-wrap，里面放了同高同底色的 .menu-control-card 铺满整条带（两种主题族
    都生效），顶栏按钮因此完全不动。内容垂直居中交给 common2.css 的 align-items: center
    （不要 padding-top，否则内容会被往下挤）。 */
-html[data-theme-family='classic'] .main .content .navigation,
-html[data-theme-family='classic'] .sidebar .menu-control-wrap {
-  height: 49px;
+/* 顶栏高度变量：顶部留白（.page 的 padding-top）读它 —— 顶栏自身高度不动
+   （现代 64px / 经典 49px，来自 common2.css 与本表的经典规则）。 */
+html[data-theme-family='modern'],
+html:not([data-theme-family]) {
+  --nav-height: 64px;
 }
 
+html[data-theme-family='classic'] {
+  --nav-height: 49px;
+}
+
+/* 现代：侧栏那条 .menu-control 占位带按实测给 79px（比顶栏高，是侧栏自己的带宽），
+   卡片同步整条带的高度；顶栏本身不跟着变。 */
+html[data-theme-family='modern'] .sidebar .menu-control,
+html:not([data-theme-family]) .sidebar .menu-control {
+  height: 79px;
+}
+
+/* 经典：占位带与顶栏同为 49px，卡片同步整条带 */
+html[data-theme-family='classic'] .sidebar .menu-control-wrap,
 html[data-theme-family='classic'] .main .content .navigation {
+  height: var(--nav-height);
+}
+
+/* 滚动条被顶栏压住：滚动条是 .browser 自己的（内联 overflow-y: scroll），跟顶栏是**兄弟层**
+   关系 —— 顶栏 z-index 100 高于内容，就把兄弟滚动条盖住了。改层级解决（不挪滚动条）。 */
+
+html[data-theme-family='classic'] .main .content .navigation {
+  /* 流外、贴顶：顶栏浮在内容之上（原来的口径；"提到 .wrap 独占上一条"那版已回退） */
   position: absolute;
   left: 0;
   flex: 0 0 49px;
