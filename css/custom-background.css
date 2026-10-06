@@ -1,0 +1,167 @@
+/* ==========================================================================
+   自定义背景（自定义壁纸）—— 本仓库最后一张样式表
+   --------------------------------------------------------------------------
+   【结构】listen1.html 的「[装饰层]」里一个 fixed 全屏层，跟着窗口走，任何容器都
+           裁不到它：
+
+     body 自带底色
+       └─ .custom-bg-wallpaper   壁纸：inset:0 + cover + center（居中缩放铺满）+ fixed
+       └─ 应用外壳 .body / .wrap / .content …（正常文档流，压在壁纸之上）
+
+   没有遮罩层：壁纸保持原色，界面不会被压暗（曾经做过一层全屏黑遮罩，整屏发灰、
+   滑块也不直观，已撤掉）。
+
+   【状态】由 js/controller/profile.js 写在 <html> 上：
+
+     data-custom-background="1"   开关（无此属性时本表所有规则不生效）
+     .custom-bg-wallpaper 的内联 backgroundImage   壁纸 data URL
+                                  （不走 CSS 变量：data URL 里的引号/分号/逗号直接拼进
+                                    变量会踩坑）
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 壁纸层：固定满窗，居中缩放铺满（cover），超出部分裁掉，不随滚动漂移
+   -------------------------------------------------------------------------- */
+.custom-bg-wallpaper {
+  display: none;
+}
+
+html[data-custom-background='1'] .custom-bg-wallpaper {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* 压到内容之下：外壳 .body 的底色本表已清成透明，壁纸才露得出来 */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* html / body 的自带白底要撤掉，否则会盖住 z-index:-1 的壁纸层 */
+html[data-custom-background='1'],
+html[data-custom-background='1'] body {
+  background-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   2. 挡在壁纸前面的三处不透明面板：清掉主题实底色，再叠一层"毛玻璃色"当面板自身
+      的底 —— 渐变画在内容之下，文字照旧压在面板上。玻璃浓度固定（没有滑块），
+      取值见 --custom-bg-panel-glass：0 = 面板全透（壁纸完整透出）、1 = 面板回主题底色。
+      覆盖规则都带 html[...] 前缀，特异性高于 common2.css 里的原规则。
+      .wrap / .content / .browser 本来就透明，不在清单内。 */
+html[data-custom-background='1'] {
+  /* 55% 主题底色 + 45% 透明：壁纸透得出来，面板上的文字也还压得住。
+      想要壁纸更明显就把这个数调小，想要更稳的文字就调大。 */
+  --custom-bg-panel-glass: 0.55;
+  --custom-bg-panel-tint: color-mix(
+    in srgb,
+    var(--content-background-color) calc(var(--custom-bg-panel-glass) * 100%),
+    transparent
+  );
+}
+
+html[data-custom-background='1'] .main .sidebar,
+html[data-custom-background='1'] .main .sidebar-content,
+html[data-custom-background='1'] .page,
+html[data-custom-background='1'] body .body {
+  background-color: transparent;
+  background-image: linear-gradient(
+    var(--custom-bg-panel-tint),
+    var(--custom-bg-panel-tint)
+  );
+}
+
+html[data-custom-background='1']
+  .page
+  .login
+  .login-form
+  .login-form_field
+  input {
+  background-color: transparent;
+  background-image: linear-gradient(
+    var(--custom-bg-panel-tint),
+    var(--custom-bg-panel-tint)
+  );
+}
+
+/* --------------------------------------------------------------------------
+   3. 顶部留白
+      顶栏（.navigation）是流外、贴顶的，所以内容流从容器顶部开始、会被顶栏压住一个
+      顶栏高度。留白用 .page 的 padding-top 给：padding 属于 .page 自己的盒子，那块
+      区域因此**仍是面板**，自定义背景的玻璃自然盖住它（放在 .page 外面的空 div 会露出
+      一条没有玻璃的壁纸，看着像"把面板顶掉了"）。
+      高度取 --nav-height（定义在 common2.css，与 .navigation 的高度同源）再加 5px 余量，
+      内容下缘不贴着顶栏。右侧滚动区里的视图全都是 .page（精选歌单 / 我的平台 / 搜索 /
+      设置 / 登录 / 曲目列表），所以改这一处就够，不要在别处另加顶部占位。 */
+.page {
+  padding-top: calc(var(--nav-height) + 5px);
+}
+
+/* --------------------------------------------------------------------------
+   4. 顶栏去掉右侧 20px 余量
+      common2.css 给 .navigation 留了 margin-right: 20px，顶栏因此铺不到窗口右边缘。
+      这里覆盖掉：选择器加 html 前缀凑到更高特异性（否则同特异性下虽然后加载也赢，但）
+      改动更稳）；顶栏铺满整宽，内部排布不动、按钮位置不变。 */
+html .main .content .navigation {
+  margin-right: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. 隐藏滚动条（滚动照旧，只是不画那条）
+      顶栏是流外的、铺到窗口右边缘，叠加 z-index: 100 —— 那条滚动条本来就会被顶栏压住。
+      与其为它调位置/层级，直接把滚动条隐掉：内容仍可滚，右侧不再出现被压一半的滚动条。
+      .browser 是内联 overflow-y: scroll 的滚动容器，common2.css 那套 ::-webkit-scrollbar
+      样式（8px 灰条）在这里一并覆盖掉。 */
+.main .content .browser {
+  scrollbar-width: none;
+}
+
+.main .content .browser::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   6. 侧栏顶栏卡片 .menu-control-card
+      侧栏那条 .menu-control 占位带外面套了 .menu-control-wrap，卡片绝对定位铺满它，
+      与右侧 .navigation 同一横带、同一底色。顶栏因此不必再横向延伸去"盖"侧栏，
+      按钮位置保持原样。
+      高度对齐 .navigation（--nav-height，64px）：卡片上缘贴顶、下缘与顶栏下缘齐平，
+      两段在窗口上沿连成同一条带。占位带 .menu-control 仍是 79px 的拖拽区，不下压内容。
+      左侧延伸至窗口左边界：.sidebar 有 padding-left: 1vw（common2.css 的 .main .sidebar），
+      卡片左移同样的量把它抵消，1vw 的缝不再露出来。
+      底色与毛玻璃跟 .navigation 同款，取 --nav-background-color（现代 palette 提供）。 */
+.menu-control-wrap {
+  position: relative;
+  --menu-control-card-bg: var(--nav-background-color, var(--content-background-color));
+}
+
+.menu-control-card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: -1vw;
+  height: var(--nav-height, 64px);
+  background-color: var(--menu-control-card-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* --------------------------------------------------------------------------
+   7. 播放页展开时锁住底层滚动
+      播放页（.footer 的展开态）是叠加层：底下的歌单 / 曲目列表不再被 display:none
+      （toggleNowPlaying 不再置 is_window_hidden），所以要把 .browser 的滚动冻住 ——
+      否则滚轮落在没被面板盖住的边角（1vw / 1vh 的余量、侧栏）上仍会推动下面那层列表。
+      .browser 的 overflow-y 是内联的 `scroll`（listen1.html），普通规则压不住，只能
+      !important；类由 ng-class="{'nowplaying-open': window_type=='track'}" 加。
+      规则放本表而不是 common2.css：common2.css 保持与合并布局前的上游原文一致，
+      fork 追加的外壳补丁都收在这张最后加载的表里。 */
+.main .content .browser.nowplaying-open {
+  overflow-y: hidden !important;
+}

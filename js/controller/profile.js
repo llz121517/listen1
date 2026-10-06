@@ -2,12 +2,16 @@
 /* eslint-disable global-require */
 /* eslint-disable no-undef */
 /* eslint-disable no-param-reassign */
-/* global angular i18next sourceList platformSourceList */
+/* global angular i18next notyf sourceList platformSourceList */
 angular.module('listenone').controller('ProfileController', [
   '$scope',
   '$q',
   ($scope, $q) => {
     const LANGUAGE_LABEL = '_LANGUAGE_NAME';
+    const BACKGROUND_KEY = 'custom_background';
+    // 壁纸一律以 data URL 存 localStorage：图太大就顶到 ≈5MB 配额，
+    // 宁可提示换图也不要把存储写坏（BACKGROUND_MAX_LENGTH 按 data URL 字符数算）。
+    const BACKGROUND_MAX_LENGTH = 4 * 1024 * 1024;
     let defaultLang = 'zh-CN';
     // First-run detection only: which browser locales are auto-selected. The list
     // of available languages (and the UI buttons) comes from config/languages.json.
@@ -22,6 +26,11 @@ angular.module('listenone').controller('ProfileController', [
     $scope.theme = '';
     $scope.about = {};
     $scope.languages = [];
+    // 自定义背景：壁纸存 data URL（localStorage.custom_background）。DOM 落点是
+    // listen1.html「[装饰层]」里的壁纸层，样式在 css/custom-background.css，
+    // 见 applyCustomBackground()。
+    //
+    $scope.customBackground = false;
     $scope.proxyModes = [
       { name: 'system', displayId: '_PROXY_SYSTEM' },
       { name: 'direct', displayId: '_PROXY_DIRECT' },
@@ -116,7 +125,94 @@ angular.module('listenone').controller('ProfileController', [
           $scope.lastestVersion = '';
         });
 
+      $scope.initCustomBackground();
       $scope.getProxyConfig();
+    };
+
+    // ------------------------------------------------------------------
+    // 自定义背景：壁纸层（listen1.html 的 [装饰层]）
+    //
+    // 一个 fixed 全屏层跟着窗口走，任何容器都裁不到它。状态只写在 <html> 上：
+    //   data-custom-background="1"   开关（css/custom-background.css 的总条件）
+    //   .custom-bg-wallpaper 的内联 backgroundImage  壁纸 data URL
+    // 没有遮罩层：壁纸保持原色，界面不被压暗。
+    //
+    // 文案一律走 i18next.t()：$scope 上的 _XXX 键由 setLang() 异步灌入，
+    // 选图 / 清除的提示不依赖那次填充；顺便避开 no-underscore-dangle 规则。
+    // ------------------------------------------------------------------
+
+    // 只认图片 data URL：非图片（拖进来的 .txt 等）在这里就被挡掉，
+    // 不会出现"存进去了但画不出来"的半套状态。
+    const isImageDataUrl = (value) =>
+      typeof value === 'string' && value.startsWith('data:image/');
+
+    // 唯一入口：把 localStorage 里的壁纸落到 DOM。
+    function applyCustomBackground() {
+      const html = document.documentElement;
+      const wallpaper = localStorage.getObject(BACKGROUND_KEY);
+      const hasWallpaper = isImageDataUrl(wallpaper);
+      $scope.customBackground = hasWallpaper;
+      if (hasWallpaper) {
+        html.setAttribute('data-custom-background', '1');
+      } else {
+        html.removeAttribute('data-custom-background');
+      }
+      const wallpaperLayer = document.querySelector('.custom-bg-wallpaper');
+      if (wallpaperLayer) {
+        wallpaperLayer.style.backgroundImage = hasWallpaper
+          ? `url("${wallpaper}")`
+          : '';
+      }
+    }
+
+    $scope.clearCustomBackground = () => {
+      localStorage.removeItem(BACKGROUND_KEY);
+      applyCustomBackground();
+      notyf.success(i18next.t('_CUSTOM_BACKGROUND_RESET'));
+    };
+
+    // 选图：读成 data URL 校验后落盘。成功时不弹提示 —— 壁纸本身与设置页的
+    // 清除按钮 / 滑块就是反馈，省掉一个 toast。
+    $scope.onCustomBackgroundSelected = (event) => {
+      const input = event.target;
+      const file = input.files && input.files[0];
+      // 同一个文件连选两次也要能触发 change
+      input.value = '';
+      if (!file) {
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const dataUrl = reader.result;
+          if (!isImageDataUrl(dataUrl)) {
+            notyf.error(i18next.t('_CUSTOM_BACKGROUND_ERROR_TYPE'));
+          } else if (dataUrl.length > BACKGROUND_MAX_LENGTH) {
+            notyf.error(i18next.t('_CUSTOM_BACKGROUND_ERROR_SIZE'));
+          } else {
+            // 配额写满时 setItem 会抛 QuotaExceededError，这里接住转成提示，
+            // 不让异常冒到 change 事件里（那会连 notyf 提示都没有）
+            localStorage.setObject(BACKGROUND_KEY, dataUrl);
+            if (localStorage.getObject(BACKGROUND_KEY) === dataUrl) {
+              applyCustomBackground();
+            } else {
+              notyf.error(i18next.t('_CUSTOM_BACKGROUND_ERROR_STORAGE'));
+            }
+          }
+        } catch (error) {
+          notyf.error(i18next.t('_CUSTOM_BACKGROUND_ERROR_STORAGE'));
+        }
+        $scope.$apply();
+      };
+      reader.onerror = () => {
+        notyf.error(i18next.t('_CUSTOM_BACKGROUND_ERROR_READ'));
+        $scope.$apply();
+      };
+      reader.readAsDataURL(file);
+    };
+
+    $scope.initCustomBackground = () => {
+      applyCustomBackground();
     };
 
     if (isElectron()) {
@@ -168,36 +264,30 @@ angular.module('listenone').controller('ProfileController', [
     };
     $scope.setLang(defaultLang);
 
-    let defaultTheme = 'white';
-    if (localStorage.getObject('theme') !== null) {
-      defaultTheme = localStorage.getObject('theme');
-    }
+    // 经典主题（white / black）已整体移除：老用户 localStorage 里可能还留着这两个值，
+    // 按深浅就近迁到现代族（white → white2、black → black2），其余未知值回落到 white2。
+    const legacyThemeMap = { white: 'white2', black: 'black2' };
+    const modernThemes = ['white2', 'black2'];
+    const storedTheme = localStorage.getObject('theme');
+    const defaultTheme =
+      modernThemes.indexOf(storedTheme) !== -1
+        ? storedTheme
+        : legacyThemeMap[storedTheme] || 'white2';
     $scope.setTheme = (theme) => {
       $scope.theme = theme;
+      // 壁纸挂在 <html> 的开关属性 + 壁纸层的内联背景上，换 palette 不会把它冲掉，
+      // 这里重挂一次，保证写的是当前状态
+      $scope.initCustomBackground();
 
-      // DOM 统一为原来的"新版"布局：四个主题共用 common2.css 的结构；经典主题
-      // 另外靠 css/compat-classic.css 做变量别名与外观覆盖，播放栏与"正在播放"
-      // 页由 listen1.html 里的 .classic-player 分支还原成经典 HTML
-      // （样式 css/classic-player.css）。
+      // 只有两套 palette（浅色 / 深色）：换主题就是换 #theme-css 的 href。
       const palettes = {
-        white: 'css/iparanoid.css',
-        black: 'css/origin.css',
         white2: 'css/iparanoid2.css',
         black2: 'css/origin2.css',
       };
-      const structureCss = 'css/common2.css';
-      const classicThemes = ['white', 'black'];
 
       if (palettes[theme] !== undefined) {
-        // data-theme-family 给 css/compat-classic.css 做作用域；
-        // data-theme 只是方便在 DevTools 里看出当前主题
-        document.documentElement.setAttribute('data-theme', theme);
-        document.documentElement.setAttribute(
-          'data-theme-family',
-          classicThemes.includes(theme) ? 'classic' : 'modern'
-        );
+
         document.getElementById('theme-css').href = palettes[theme];
-        document.getElementById('common-css').href = structureCss;
         localStorage.setObject('theme', theme);
       }
       axios.get('images/feather-sprite.svg').then((res) => {

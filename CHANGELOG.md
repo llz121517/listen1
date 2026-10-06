@@ -8,19 +8,50 @@
 
 ## 版本号约定
 
-全仓库统一：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json`（扩展清单的 `version` 只接受 1~4 段纯数字）/ `config/about.json`（界面展示值）。
+语义化版本（SemVer）`MAJOR.MINOR.PATCH`：不兼容改动升 `MAJOR`、向后兼容地新增升 `MINOR`、向后兼容地修复升 `PATCH`（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7）。扩展清单的 `version` 只接受 1~4 段纯数字，所以只用三段 `x.y.z`。
+全仓库统一：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json` / `config/about.json`（界面展示值）。
+发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-06
+
 ### Changed
 
+- 播放页（`.footer` 展开态）改为叠加层：`toggleNowPlaying()` 不再置 `is_window_hidden=0`、不再 `resetWindow()`，曲目列表的 `ng-show` 去掉 `window_type=='list'` 依赖 —— 下层视图保持挂载、滚动位置不丢；关闭走新增快捷路径（只回退视图 + 恢复 offset，不重取数据）；展开期间 `.browser` 用 `nowplaying-open` 锁住底层滚动（`overflow-y: hidden !important`，压过内联的 `scroll`）
+- 新增 `docs/CONVENTIONS.md` §10 分支与发版流程：`main` 原则上只经 `dev` 的 PR 更新、一 PR 一版本、合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`）
+- 顶栏与播放栏的底色透明度由 0.86 降到 0.75（`--nav-background-color`，两套 palette 同步）：两条浮条透一点，自定义壁纸下更明显；同一变量驱动的侧栏顶带卡片与播放列表抽屉一并变透
+- `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，只多 `--nav-height` 与下面那条死声明清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新
+- 清理遗留：`profile.js` 不再往 `<html>` 写已无消费者的 `data-theme`，`common2.css` 删掉两套 palette 都没定义的死声明 `color: var(--color-text)`，`listen1.html` 去掉不再被引用的 `#common-css` id，i18n 的 `_THEME_MODERN_WHITE` / `_THEME_MODERN_BLACK` 更名 `_THEME_WHITE` / `_THEME_BLACK` 并去掉文案里的"现代"字样
+- 右侧滚动区顶部留白加 5px（`.page` 的 `padding-top` 改为 `calc(var(--nav-height) + 5px)`），内容不再贴着顶栏下缘
+- 版本号约定明确为语义化版本（SemVer）：`MAJOR` 不兼容改动、`MINOR` 向后兼容地新增、`PATCH` 向后兼容地修复；扩展清单只接受纯数字，因此只用三段 `x.y.z`
+
+### Fixed
+
+- `listen1.html` 的两段内联 `<script>` 移成外部文件（新增 `js/module_guard_hide.js` / `js/module_guard_restore.js`，加载位置与原来一致）：MV3 的 CSP 是 `script-src 'self'`，内联脚本会被拦掉并报 `Executing inline script violates the following Content Security Policy directive`，而这两段只在 Electron 下有用（摘掉 / 还原 Node 全局 `module`）
+- 封面虚影的 `background-image` 由内联 `style` 改为 `ng-style`（5 处）：`url({{…}})` 由 CSS 先解析、Angular 后插值，浏览器会把 `{{cover_img_url}}` 字面量当 URL 去请求并报 `net::ERR_FILE_NOT_FOUND`
+- front / background 模式推导收敛到 `bridge.js` 的 `getPlayerMode()`，并用 `hasBackgroundPlayer()` 判断后台播放器是否存在：MV3 没有 background page，原先默认 front 模式启动时仍会去"暂停后台播放器"，导致 `Cannot read properties of undefined (reading 'threadPlayer')` 与 `Unchecked runtime.lastError: You do not have a background page.`
+
+## [2.0.0] - 2026-10-06
+
+### Added
+
+- 自定义背景：设置页新增『自定义背景』一节 —— 『选择壁纸』走文件选择窗，选中后壁纸居中缩放铺满（`cover`）并固定满窗，同时出现『清除壁纸』按钮；壁纸存 `custom_background`（图片 data URL），启动时自动恢复
+- `css/custom-background.css` + `listen1.html` 的 `[装饰层]`：自定义背景画成一个 fixed 全屏壁纸层（`z-index:-1`，跟窗口走、不被容器裁切）；面板玻璃浓度由 `--custom-bg-panel-glass` 固定（默认 0.55）
+
+### Changed
+
+- 侧栏顶栏卡片 `.menu-control-card` 高度对齐 `.navigation`（取 `--nav-height`，不再跟随 79px 的占位带），并把左边界外扩 `-1vw` 抵消侧栏内边距、一直铺到窗口左边缘
+- 侧栏顶部的 `.menu-control` 占位移到 `.sidebar` 顶层（不再裹在滚动容器里），与右侧 `.navigation` 同一横带
+- 顶栏去掉 `common2.css` 留的 20px 右外边距，铺到窗口右边缘
+- 顶栏留白改由 `.page` 的 `padding-top: var(--nav-height)` 给：padding 属于 `.page` 自己的盒子，那块区域仍是面板、自定义背景的玻璃盖得住（此前放在 `.page` 外面的空 div 会露出一条没有玻璃的壁纸）
 - 侧栏网易云 / QQ 音乐标识改为单色（`currentColor` 跟随主题深浅）：保留原图标几何、只留中间标记（去掉外层方框与被裁掉的文字层），线条由 2.6px 收细到约 2.0px，音符下部开口处为空心圆
-- 经典主题侧栏底边与 60px 播放栏之间空出的约 150px：侧栏高度改为跟随容器（`height: 100%`），底边贴住播放栏
-- 经典主题顶部同样还原原版口径：侧栏占位带 `menu-control` 74px → 43px，顶栏 64px 绝对定位 + 毛玻璃 → 46px 在流内、无底色
-- 经典主题侧栏底色搬到整列 `.sidebar`（原版做法）：顶部占位带不再露空白，并去掉现代留的 1vw 左内边距，侧栏完全靠左
-- 经典主题侧栏收起/展开恢复动效（宽度 0.2s、logo 与分组标题渐显），其余现代动效仍禁用
-- 经典主题顶栏加 8px 上内边距（`box-sizing: border-box` 锁住 46px 总高），搜索框不再贴顶
 - `docs/CONVENTIONS.md` 补 CHANGELOG 纪律：默认写 `[Unreleased]`、`Fixed` 自审归因、详略度对齐 `1.0.0`、只在被要求时提交
+
+### Removed
+
+- 经典主题族整体移除：white / black 两套主题、`css/compat-classic.css` / `css/classic-player.css` / 经典 palette（`iparanoid.css` / `origin.css`）/ 运行期已无引用的 `css/common.css`、`listen1.html` 的 `.classic-player` 分支、`_THEME_WHITE` 与 `_THEME_BLACK` 两个 i18n 键；`data-theme-family` 机制与 `useModernTheme()` 一并拆掉，老用户存下的 white / black 按深浅迁到 white2 / black2
+- 清掉四个已废弃的样式文件：`css/player.css`、`css/cover.css`、`css/reset.css`、`css/hotkeys.css`（运行期均无引用，`hotkeys.css` 的 `<link>` 一并从 `listen1.html` 移除）
 
 ## [1.1.0] - 2026-10-06
 

@@ -1,10 +1,7 @@
 /* eslint-disable no-param-reassign */
-/* global isElectron getPlayer getPlayerAsync addPlayerListener getLocalStorageValue */
+/* global getPlayer getPlayerAsync addPlayerListener getPlayerMode */
 {
-  const mode =
-    isElectron() || getLocalStorageValue('enable_stop_when_close', true)
-      ? 'front'
-      : 'background';
+  const mode = getPlayerMode();
 
   const myPlayer = getPlayer(mode);
   const l1Player = {

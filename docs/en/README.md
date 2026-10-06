@@ -50,7 +50,7 @@ Making your own playlist is also supported.
 
 ## Changelog
 
-> Versioning restarts at `1.1.0` in this fork (upstream last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
+> This fork uses semantic versioning (SemVer, `MAJOR.MINOR.PATCH`) and is currently at `2.1.0`; it versions independently of upstream (last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
 
 - This fork's changelog: [CHANGELOG.md](../../CHANGELOG.md)
 - Upstream changelog (archived, verbatim): [origin/CHANGELOG_UPSTREAM_EN.md](../../origin/CHANGELOG_UPSTREAM_EN.md)
