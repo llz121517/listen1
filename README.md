@@ -65,10 +65,10 @@ V2.9.0 新特性：自动切换播放源(Beta)
 
 ## 更新日志
 
-> 本 fork 的版本号为 `1.0.0`（重新编号，不带前缀；上游最后版本为 `2.33.0`）。上游历史日志已归档，不再在本文件维护。
+> 本 fork 的版本号为 `1.1.0`（重新编号，不带前缀；上游最后版本为 `2.33.0`）。上游历史日志已归档，不再在本文件维护。
 
 - 本 fork 的更新日志：[CHANGELOG.md](CHANGELOG.md)
-- 上游历史日志（归档原文）：[docs/archive/CHANGELOG_UPSTREAM.md](docs/archive/CHANGELOG_UPSTREAM.md)
+- 上游历史日志（归档原文）：[origin/CHANGELOG_UPSTREAM.md](origin/CHANGELOG_UPSTREAM.md)
 
 ## License
 

@@ -175,18 +175,29 @@ angular.module('listenone').controller('ProfileController', [
     $scope.setTheme = (theme) => {
       $scope.theme = theme;
 
-      const themeFiles = {
-        white: ['css/iparanoid.css', 'css/common.css'],
-        black: ['css/origin.css', 'css/common.css'],
-        white2: ['css/iparanoid2.css', 'css/common2.css'],
-        black2: ['css/origin2.css', 'css/common2.css'],
+      // DOM 统一为原来的"新版"布局：四个主题共用 common2.css 的结构；经典主题
+      // 另外靠 css/compat-classic.css 做变量别名与外观覆盖，播放栏与"正在播放"
+      // 页由 listen1.html 里的 .classic-player 分支还原成经典 HTML
+      // （样式 css/classic-player.css）。
+      const palettes = {
+        white: 'css/iparanoid.css',
+        black: 'css/origin.css',
+        white2: 'css/iparanoid2.css',
+        black2: 'css/origin2.css',
       };
-      // You can change the language during runtime
-      if (themeFiles[theme] !== undefined) {
-        const keys = ['theme-css', 'common-css'];
-        for (let i = 0; i < themeFiles[theme].length; i += 1) {
-          document.getElementById(keys[i]).href = themeFiles[theme][i];
-        }
+      const structureCss = 'css/common2.css';
+      const classicThemes = ['white', 'black'];
+
+      if (palettes[theme] !== undefined) {
+        // data-theme-family 给 css/compat-classic.css 做作用域；
+        // data-theme 只是方便在 DevTools 里看出当前主题
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute(
+          'data-theme-family',
+          classicThemes.includes(theme) ? 'classic' : 'modern'
+        );
+        document.getElementById('theme-css').href = palettes[theme];
+        document.getElementById('common-css').href = structureCss;
         localStorage.setObject('theme', theme);
       }
       axios.get('images/feather-sprite.svg').then((res) => {

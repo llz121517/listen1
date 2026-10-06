@@ -50,10 +50,10 @@ Making your own playlist is also supported.
 
 ## Changelog
 
-> Versioning restarts at `1.0.0` in this fork (upstream last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
+> Versioning restarts at `1.1.0` in this fork (upstream last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
 
 - This fork's changelog: [CHANGELOG.md](../../CHANGELOG.md)
-- Upstream changelog (archived, verbatim): [docs/archive/CHANGELOG_UPSTREAM_EN.md](../archive/CHANGELOG_UPSTREAM_EN.md)
+- Upstream changelog (archived, verbatim): [origin/CHANGELOG_UPSTREAM_EN.md](../../origin/CHANGELOG_UPSTREAM_EN.md)
 
 ## License
 
