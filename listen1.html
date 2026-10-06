@@ -19,6 +19,7 @@
     <link href="css/common2.css" rel="stylesheet" id="common-css" />
     <link href="css/compat-classic.css" rel="stylesheet" id="compat-css" />
     <link href="css/classic-player.css" rel="stylesheet" />
+    <link href="css/custom-background.css" rel="stylesheet" />
 
     <!--
       ===========================================================================
@@ -137,6 +138,10 @@
   <body>
     <div ng-controller="ProfileController" ng-init="initProfile()">
       <div class="body">
+        <!-- ===== [装饰层] 自定义背景的壁纸层 =====
+             一个 fixed 全屏层：居中缩放铺满、固定满窗；显示与否由 js/controller/profile.js
+             写 <html data-custom-background="1"> 控制，样式见 css/custom-background.css。 -->
+        <div class="custom-bg-wallpaper"></div>
         <div
         id="feather-container"
         style="visibility: hidden; position: absolute; width: 0px; height: 0px"
@@ -422,8 +427,16 @@
                 <div class="main" ng-controller="MyPlayListController">
                   <!-- ===== [侧栏] .sidebar：可折叠，经典族外观由 compat-classic.css 还原 ===== -->
                   <div class="sidebar">
-                    <div class="flex-scroll-wrapper">
+                    <!-- 顶栏区占位：与右侧 .navigation 同一横带（经典族两边都是 46px，见 compat-classic.css），
+                         本身是拖拽区、无内容；放在滚动容器之外，不跟着侧栏内容滚。 -->
+                    <!-- 侧栏顶栏区：.menu-control 是拖拽用的占位带（顶开 .flex-scroll-wrapper），
+                         外面套一层定位容器放 .menu-control-card —— 那块卡片与右侧 .navigation
+                         同一横带、同底色，两种主题族都铺满这条带；顶栏按钮不动。 -->
+                    <div class="menu-control-wrap">
                       <div class="menu-control"></div>
+                      <div class="menu-control-card"></div>
+                    </div>
+                    <div class="flex-scroll-wrapper">
                         <div ng-class="{'opensidebar':isOpenSidebar,footerdef:playlist.length == 0}" class="sidebar-content">
                           <div class="logo-content" ng-click="openSidebar()">
                             <div class="logo-svg" >
@@ -548,6 +561,10 @@
                   </div>
 
                   <div class="content" ng-controller="InstantSearchController">
+                    <!-- 右侧流顶部占位：把顶栏（以及它下面的内容）整体让到左侧侧栏那条
+                         顶栏卡片带下方 —— 两侧顶栏区同高、齐平。高度与卡片一致（49px），
+                         顶栏本身由 compat-classic.css 设成 fixed + top: 49px 贴在这块下面。 -->
+                    <div class="nav-spacer"></div>
                 <!-- ===== [导航] .navigation：全局搜索框 #search-input 与窗口按钮 ===== -->
                     <div class="navigation">
                       <div class="backfront">
@@ -606,7 +623,6 @@
                       infinite-scroll="scrolling()"
                       content-selector="'#playlist-content'"
                     >
-                      <div style="height: 64px;"></div>
                       <!-- hot playlist window-->
                       <!-- ===== [精选歌单] current_tag==2 ===== -->
                       <div
@@ -671,6 +687,9 @@
                           </div>
                         </div>
                         <div class="site-wrapper-innerd" id="hotplaylist">
+                          <!-- 悬浮顶栏留白：放在面板容器（.site-wrapper-innerd）里、#playlist-content **之外**，
+                               面板才会随留白一起长高；放深一层只会把卡片往下压、上方露出没有面板的一截 -->
+                          <div style="height: 64px;"></div>
                           <div class="cover-container" id="playlist-content">
                             <ul  ng-style="{'padding-bottom':playlist.length == 0?'0px':'120px'}" class="playlist-covers">
                               <li ng-repeat="i in result ">
@@ -731,6 +750,9 @@
                           ></div>
                         </div>
                         <div class="site-wrapper-innerd" id="hotplaylist">
+                          <!-- 悬浮顶栏留白：放在面板容器（.site-wrapper-innerd）里、#playlist-content **之外**，
+                               面板才会随留白一起长高；放深一层只会把卡片往下压、上方露出没有面板的一截 -->
+                          <div style="height: 64px;"></div>
                           <div class="cover-container" id="playlist-content">
                             <ul ng-style="{'padding-bottom':playlist.length == 0?'0px':'140px'}"  class="playlist-covers">
                               <li ng-repeat="i in myPlatformPlaylists">
@@ -1066,6 +1088,33 @@
                               >
                                 {{_THEME_MODERN_BLACK}}
                               </button>
+                              </div>
+                            </div>
+                            <!-- ===== [自定义背景] 选壁纸 / 清除壁纸 =====
+                                 逻辑见 js/controller/profile.js 的 initCustomBackground，
+                                 样式见 css/custom-background.css；两种主题族通用。 -->
+                            <div class="settings-title">
+                              <span>{{_CUSTOM_BACKGROUND}}</span>
+                            </div>
+                            <div class="settings-content">
+                              <div class="custom-background-settings">
+                                <label
+                                  class="upload-button"
+                                  for="custom-background-file"
+                                  >{{_CUSTOM_BACKGROUND_SELECT}}<input
+                                    id="custom-background-file"
+                                    type="file"
+                                    accept="image/*"
+                                    style="display: none"
+                                    custom-on-change="onCustomBackgroundSelected"
+                                /></label>
+                                <button
+                                  class="custom-background-clear"
+                                  ng-show="customBackground"
+                                  ng-click="clearCustomBackground()"
+                                >
+                                  {{_CUSTOM_BACKGROUND_CLEAR}}
+                                </button>
                               </div>
                             </div>
                             <div class="settings-title">

@@ -59,7 +59,7 @@ html[data-theme-family='classic'] body .body {
 }
 
 /* 原版经典的底色画在整列 .sidebar 上（common.css:155-160），现代画在 .sidebar-content 这个圆角块上。
-   经典族把底色搬回整列：顶部 43px 占位带（.menu-control 是 .sidebar-content 的兄弟节点）也被侧栏底色盖住，
+   经典族把底色搬回整列：顶部占位带 .menu-control（在 .sidebar 顶层、滚动容器之外）也被侧栏底色盖住，
    不会露出空白带；同时去掉现代给侧栏留的 1vw 左内边距，让侧栏完全靠左（原版就是贴边）。 */
 html[data-theme-family='classic'] .main .sidebar {
   background: var(--sidebar-background-color);
@@ -119,26 +119,35 @@ html[data-theme-family='classic'] .sidebar ul li.dragover .sidebar-block {
   border-radius: var(--default-border-radius);
 }
 
-/* 侧栏顶部占位带：现代 74px，是给"64px 绝对定位顶栏"留的位置；原版经典是 43px（common.css:188-192），
-   配 46px 在流内的顶栏。不一起还原的话侧栏首项会比原版低 31px、和内容区顶部对不齐。
-   原版这条还有 width: 125px，这里不还原 —— 侧栏收起态只有 60px 宽，125px 会溢出。 */
+/* 侧栏顶部占位带 .menu-control：现代 74px（给 64px 绝对定位顶栏留位置），原版经典 43px。
+   经典族顶栏改高到 49px 后，这条占位带同步给 49px —— 同一个横带上左右两块一样高，
+   侧栏首项也不会被"顶"出一截。（原版这条还有 width: 125px，不还原：侧栏收起态只有 60px。） */
 html[data-theme-family='classic'] .sidebar .menu-control {
-  height: 43px;
+  height: 49px;
 }
 
-/* 顶部导航条：原版经典是"46px 平面条、在流内、无底色"（common.css:170-177）；
-   现代是 64px + position: absolute + 毛玻璃，浮在内容之上（内容顶部滑到它下面）。
-   经典族把位置、尺寸、底色一并还原，内容区才像原版那样从顶栏下方开始。 */
+/* 顶部导航条 + 侧栏顶栏区：
+   原版经典是"46px 平面条、在流内、无底色"（common.css:170-177）；现在是流外（absolute），
+   与左侧 .menu-control-card 同高 49px（比原版高 3px，顶栏那排控件不贴上下边）。
+   顶部区不再靠顶栏横向延伸来"盖"侧栏 —— 侧栏那条 .menu-control 占位带自己套了一层
+   .menu-control-wrap，里面放了同高同底色的 .menu-control-card 铺满整条带（两种主题族
+   都生效），顶栏按钮因此完全不动。内容垂直居中交给 common2.css 的 align-items: center
+   （不要 padding-top，否则内容会被往下挤）。 */
+html[data-theme-family='classic'] .main .content .navigation,
+html[data-theme-family='classic'] .sidebar .menu-control-wrap {
+  height: 49px;
+}
+
 html[data-theme-family='classic'] .main .content .navigation {
-  position: static;
-  height: 46px;
-  flex: 0 0 46px;
+  position: absolute;
+  left: 0;
+  flex: 0 0 49px;
   margin-right: 0;
-  /* 46px 里内容垂直居中只剩 7px 上缝，搜索框看着贴顶：给一点上内边距把它压下来；
-     border-box 把总高锁在 46px，下面的内容区不跟着移。 */
   box-sizing: border-box;
-  padding-top: 8px;
-  background-color: transparent;
+  padding-top: 0;
+  /* 底色写明确的不透明值（与左侧 .menu-control-card 同色）：只靠 --nav-background-color
+     在经典族下取不到有效值（实测 background-color 会算成透明）。 */
+  background-color: var(--content-background-color);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   border-bottom: 1px solid var(--line-default-color);
@@ -342,6 +351,9 @@ html[data-theme-family='classic'] a:hover {
      css/classic-player.css:111、:199、:559）。:not() 里的复杂选择器需要
      Chrome 88+ / Firefox 84+，不支持时整条选择器失效，即退化为"不禁用过渡"。
    notyf 吐司与 #drag-ghost 都挂在 <body> 下、在 .body 之外，不受影响。
+   下面两组白名单按"共用外壳自带的交互"放行：本文件末尾的侧栏收起/展开、以及封面浮起
+   （.u-cover：图片上抬 10px + 播放按钮淡入 + 虚影散开）。放行规则的写法要求：选择器与
+   上面的禁用规则**特异性相同或更高**、且排在它后面（同级别 !important 下后者胜）。
    -------------------------------------------------------------------------- */
 html[data-theme-family='classic'] .body,
 html[data-theme-family='classic'] .body *:not(.classic-player):not(.classic-player *) {
@@ -364,4 +376,26 @@ html[data-theme-family='classic'] .body .main .sidebar .sidebar-content .logo-co
 html[data-theme-family='classic'] .body .main .sidebar .sidebar-content .logo-content .logo-title svg,
 html[data-theme-family='classic'] .body .main .sidebar .menu-title .title {
   transition: 0.2s !important;
+}
+
+/* 封面浮起：common2.css 里 .u-cover:hover img 会把封面往上抬 10px，
+   同一套 .u-cover 里还有播放按钮淡入（.bottom，0.2s）与虚影散开（.covershadow，0.4s）。
+   禁用规则的特异性是 (0,2,1)（:not() 里带了 .classic-player *），所以白名单必须凑到同样的
+   (0,2,1) 才能在同级别 !important 下靠"排在后面"取胜 —— 关键是选择器里**带上 .body**；
+   不带 .body 时只有 (0,1,1)，实测压不住，transition 会被算成 none（封面就没动画了）。 */
+html[data-theme-family='classic'] .body .playlist-covers .u-cover img,
+html[data-theme-family='classic'] .body ul.detail-songlist li .u-cover img {
+  transition: all 0.1s ease-in-out 0s !important;
+}
+
+html[data-theme-family='classic'] .body .playlist-covers .u-cover .bottom,
+html[data-theme-family='classic'] .body .detail-head-cover .bottom,
+html[data-theme-family='classic'] .body ul.detail-songlist li .u-cover .bottom {
+  transition: all 0.2s ease 0s !important;
+}
+
+html[data-theme-family='classic'] .body .playlist-covers .u-cover .covershadow,
+html[data-theme-family='classic'] .body .detail-head-cover .covershadow,
+html[data-theme-family='classic'] .body ul.detail-songlist li .u-cover .covershadow {
+  transition: all 0.4s !important;
 }

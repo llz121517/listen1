@@ -1,0 +1,136 @@
+/* ==========================================================================
+   自定义背景（自定义壁纸）—— 经典族 / 现代族通用，本仓库最后一张样式表
+   --------------------------------------------------------------------------
+   【结构】listen1.html 的「[装饰层]」里一个 fixed 全屏层，跟着窗口走，任何容器都
+           裁不到它：
+
+     body 自带底色
+       └─ .custom-bg-wallpaper   壁纸：inset:0 + cover + center（居中缩放铺满）+ fixed
+       └─ 应用外壳 .body / .wrap / .content …（正常文档流，压在壁纸之上）
+
+   没有遮罩层：壁纸保持原色，界面不会被压暗（曾经做过一层全屏黑遮罩，整屏发灰、
+   滑块也不直观，已撤掉）。
+
+   【状态】由 js/controller/profile.js 写在 <html> 上：
+
+     data-custom-background="1"   开关（无此属性时本表所有规则不生效）
+     .custom-bg-wallpaper 的内联 backgroundImage   壁纸 data URL
+                                  （不走 CSS 变量：data URL 里的引号/分号/逗号直接拼进
+                                    变量会踩坑）
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 壁纸层：固定满窗，居中缩放铺满（cover），超出部分裁掉，不随滚动漂移
+   -------------------------------------------------------------------------- */
+.custom-bg-wallpaper {
+  display: none;
+}
+
+html[data-custom-background='1'] .custom-bg-wallpaper {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* 压到内容之下：外壳 .body 的底色本表已清成透明，壁纸才露得出来 */
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* html / body 的自带白底要撤掉，否则会盖住 z-index:-1 的壁纸层 */
+html[data-custom-background='1'],
+html[data-custom-background='1'] body {
+  background-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   2. 挡在壁纸前面的三处不透明面板：清掉主题实底色，再叠一层"毛玻璃色"当面板自身
+      的底 —— 渐变画在内容之下，文字照旧压在面板上。玻璃浓度固定（没有滑块），
+      取值见 --custom-bg-panel-glass：0 = 面板全透（壁纸完整透出）、1 = 面板回主题底色。
+      覆盖规则都带 html[...] 前缀，特异性高于 common2.css 里的原规则。
+      .wrap / .content / .browser 本来就透明，不在清单内。 */
+html[data-custom-background='1'] {
+  /* 55% 主题底色 + 45% 透明：壁纸透得出来，面板上的文字也还压得住。
+     想要壁纸更明显就把这个数调小，想要更稳的文字就调大。 */
+  --custom-bg-panel-glass: 0.55;
+  --custom-bg-panel-tint: color-mix(
+    in srgb,
+    var(--content-background-color) calc(var(--custom-bg-panel-glass) * 100%),
+    transparent
+  );
+}
+
+html[data-custom-background='1'] .main .sidebar,
+html[data-custom-background='1'] .main .sidebar-content,
+html[data-custom-background='1'] .page,
+html[data-custom-background='1'] body .body {
+  background-color: transparent;
+  background-image: linear-gradient(
+    var(--custom-bg-panel-tint),
+    var(--custom-bg-panel-tint)
+  );
+}
+
+html[data-custom-background='1']
+  .page
+  .login
+  .login-form
+  .login-form_field
+  input {
+  background-color: transparent;
+  background-image: linear-gradient(
+    var(--custom-bg-panel-tint),
+    var(--custom-bg-panel-tint)
+  );
+}
+
+/* --------------------------------------------------------------------------
+   3. 侧栏顶栏卡片 .menu-control-card（经典 / 现代通用）
+     侧栏那条 .menu-control 占位带外面套了 .menu-control-wrap，卡片绝对定位铺满它，
+     与右侧 .navigation 同一横带、同一底色。顶栏因此不必再横向延伸去"盖"侧栏，
+     按钮位置保持原样。
+     取色注意：--nav-background-color 只在现代 palette（iparanoid2 / origin2）里有定义，
+     经典 palette（iparanoid / origin）没有 —— 直接用它会在经典族取不到值而变透明，
+     所以经典族改用不透明的 --content-background-color（与侧栏同色）。
+     尺寸不写死：高度由外层 .menu-control-wrap（经典 49px；现代跟随 .menu-control 的 74px）
+     与 flex 拉伸决定，宽度交给 left:0 / right:0，跟侧栏块一样宽。 */
+.menu-control-wrap {
+  position: relative;
+  --menu-control-card-bg: var(--nav-background-color, var(--content-background-color));
+}
+
+html[data-theme-family='classic'] .menu-control-wrap {
+  --menu-control-card-bg: var(--content-background-color);
+  display: flex;
+}
+
+.menu-control-card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: none;
+  background-color: var(--menu-control-card-bg);
+}
+
+/* 经典族：卡片占满整条带（flex 拉伸，宽度跟侧栏一致） */
+html[data-theme-family='classic'] .menu-control-card {
+  position: static;
+  display: block;
+  flex: 1;
+}
+
+/* 现代族：与悬浮毛玻璃顶栏同款（同色 + 同模糊） */
+html[data-theme-family='modern'] .menu-control-card,
+html:not([data-theme-family]) .menu-control-card {
+  display: block;
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}

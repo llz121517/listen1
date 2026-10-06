@@ -415,6 +415,34 @@ ProfileController (listen1.html 的 <body> 内联)
 
 页面上可见的快捷键表是**手写标记**而非自动生成（`:1392-1520`），且 `m`、`l` 两行被注释掉却仍在生效 —— 改快捷键时必须同时改绑定与这张表。Electron 另有全局快捷键（左/右/空格，`play.js:835`）。
 
+### 7.4 自定义背景（壁纸）—— 装饰层
+
+`listen1.html` 的 `<div class="body">` 最前面是标记注释 `[装饰层]`，里面只有一个**装饰用的
+fixed 全屏层**（经典族 / 现代族共用同一套画法）：
+
+| 层 | 类名 | 作用 |
+| --- | --- | --- |
+| 壁纸 | `.custom-bg-wallpaper` | `position: fixed; inset: 0`、`z-index: -1`、`background-size: cover` + `center center` + `background-attachment: fixed`（居中缩放铺满、固定不动）；图片由 JS 内联 `backgroundImage` 给 |
+
+要点：
+
+- **层跟窗口走**，不挂在 `.body` 上 —— 挂在外壳上会被 `overflow` / 圆角裁掉，滚动容器顶部、绝对定位顶栏那侧还会漏出没覆盖的横条（踩过）。
+- **没有遮罩层**。做过一版"全屏黑遮罩 + 透明度滑块"：整屏发灰、还盖住 UI，已撤掉；壁纸保持原色。
+- 面板玻璃：`html[data-custom-background='1']` 上定义一个 `--custom-bg-panel-glass`（默认 `0.55`，
+  0 = 面板全透、1 = 面板回主题底色）与由此算出的 `--custom-bg-panel-tint`
+  （`color-mix(in srgb, var(--content-background-color) calc(var(--custom-bg-panel-glass) * 100%), transparent)`），
+  由 `.body` / `.main .sidebar` / `.main .sidebar-content` / `.page`（+ 登录卡输入框）用
+  `background-image: linear-gradient(tint, tint)` 铺在自身底色之上。**不要**改成清掉
+  `background-color` 后只留渐变：`color-mix` 一旦被浏览器判为无效值，面板会整块丢底色。
+- 经典族顶栏要托底：`compat-classic.css` 按原版把顶栏做成"透明条"（原版底下有整块页面底色），
+  自定义背景清掉页面底色后它会像"顶栏没了"，故 `css/custom-background.css` 末端给经典族补回
+  `background-color: var(--content-background-color)`；现代族不动（本来就是毛玻璃浮条）。
+- 控制器：`js/controller/profile.js` 的"自定义背景"注释块 —— 单一入口 `applyCustomBackground()`
+  负责把状态写到 `<html>`（`data-custom-background` 开关 + 壁纸层内联背景），
+  `initProfile()` 与 `setTheme()` 各调一次 `initCustomBackground()`。
+- 失败处理：非图片、data URL 超 4MB、存储写满（`QuotaExceededError`）、读取失败都给 `notyf` 错误提示且不改状态；
+  选图成功**不弹提示**（壁纸本身就是反馈），只有"清除"给一次成功提示。
+
 ---
 
 ## 8. 主题、样式、i18n 与静态资源
@@ -423,8 +451,9 @@ ProfileController (listen1.html 的 <body> 内联)
 | --- | --- | --- | --- |
 | `css/common.css` | 1,802 | **废弃（参考实现）** | 经典布局原文，运行期不再被 `listen1.html` 引用；播放区样式见 `css/classic-player.css` |
 | `css/common2.css` | 2,734 | 使用中 | 四个主题共用的结构样式表 |
-| `css/compat-classic.css` | 315 | 使用中 | 经典主题（white / black）兼容层：变量别名 + 外壳的经典外观覆盖 |
+| `css/compat-classic.css` | 393 | 使用中 | 经典主题（white / black）兼容层：变量别名 + 外壳的经典外观覆盖 + **现代动效禁用与白名单**（禁 `transition`/`animation`，只放行侧栏展开/收起与封面浮起；见文件第 8 节） |
 | `css/classic-player.css` | 815 | 使用中（仅经典主题） | 经典播放栏 + 经典"正在播放"页的样式，由 `css/common.css` 抽取 |
+| `css/custom-background.css` | 92 | 使用中 | 自定义背景的装饰层（壁纸层 / 面板玻璃 / 经典顶栏托底）；全部规则限定 `html[data-custom-background='1']`，最后一张加载，见 §7.4 |
 | `css/iparanoid.css` / `css/origin.css` | 2,560 / 2,603 B | 使用中 | 经典主题的浅色（white）/ 深色（black）变量 |
 | `css/iparanoid2.css` / `css/origin2.css` | 2,193 / 2,110 B | 使用中 | 新版主题的浅色（white2）/ 深色（black2）变量 |
 | `css/notyf.min.css` + `css/notyf_custom.css` | vendor + 7 行 | 使用中 | toast 样式与定制 |
@@ -433,8 +462,10 @@ ProfileController (listen1.html 的 <body> 内联)
 | `css/player.css` | 1,225 行 | **废弃** | 旧播放器皮肤，无引用 |
 | `css/cover.css` / `css/reset.css` | 3,537 / 1,041 B | **废弃** | Bootstrap Cover 模板残留 / reset |
 
-- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 173 个键且键集与键序完全一致；其中 162 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `load: 'currentOnly'` + `preload: ['zh-CN']`（`app.js:502,506-507`），**不再需要维护语言白名单**；`load: 'currentOnly'` 是必需的 —— 否则 i18next 会额外请求不带区域码的 `i18n/zh.json`（不存在 → 404 + 后端重试，首次翻译被推迟）。语言按钮由 `ng-repeat` 动态生成（`listen1.html` 里 `ng-repeat="l in languages"` 的那段模板），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js:86-105` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键。**
+- **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 181 个键且键集与键序完全一致；其中 170 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `load: 'currentOnly'` + `preload: ['zh-CN']`（`app.js:502,506-507`），**不再需要维护语言白名单**；`load: 'currentOnly'` 是必需的 —— 否则 i18next 会额外请求不带区域码的 `i18n/zh.json`（不存在 → 404 + 后端重试，首次翻译被推迟）。语言按钮由 `ng-repeat` 动态生成（`listen1.html` 里 `ng-repeat="l in languages"` 的那段模板），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js` 的 `initProfile` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键**（`zh-TC.json` 带 UTF-8 BOM，改它时别把 BOM 弄丢）。
 - **字体**：`fonts/listen1-icon.{eot,svg,ttf,woff}`。
+- **自定义背景**：`css/custom-background.css`（壁纸层 / 面板玻璃，四主题通用，机制见 §7.4）。
+- **经典族禁用的动效**：`css/compat-classic.css` 第 8 节用 `transition: none !important` / `animation: none !important` 打整棵 `.body`，再用白名单放行两类"共用外壳自带的交互" —— ① 侧栏展开/收起（`.sidebar-content`、logo 区、分组标题，0.2s）；② 封面浮起（`.u-cover`：图片上抬 0.1s、播放按钮 `.bottom` 淡入 0.2s、虚影 `.covershadow` 散开 0.4s）。白名单必须与禁用规则**同特异性或更高**且排在它后面（同级别 `!important` 后者胜）；被禁的其余 30 余条过渡与三个 `@keyframes`（`.rotatemark` / `.circlmark` / `.rotatecircl`）在经典族全部失效；经典播放区（`.classic-player`）由 `:not()` 排除在外，保留原版那三条过渡。
 - **图片**：`logo*.png`/`favicon.ico`（清单与页面图标）、`mycover.jpg`（默认歌单封面）、`placeholder.png`（登录卡占位）、`feather-sprite.svg`（运行时注入 `#feather-container`，供 `<use>` 引用）、`loading.svg`/`loading-1.gif`（加载态）；`loading.gif`、`player_*.png`、`progress_indicator.png`、`statbar.png` 已无有效引用。
 
 ---
@@ -458,6 +489,7 @@ ProfileController (listen1.html 的 <body> 内联)
 | `enable_lyric_translation` / `enable_lyric_floating_window[_translation]` / `float_window_setting` | `play.js:819,234,828,300` | 歌词翻译与悬浮窗 |
 | `enable_nowplaying_cover_background` / `_bitrate` / `_platform` / `enable_global_shortcut` | `play.js:893,902,911,212` | 正在播放页外观与全局快捷键 |
 | `theme` / `language` / `openSidebar` | `profile.js:172,18`、`navigation.js:40` | 应用偏好 |
+| `custom_background` | `profile.js` 的 `onCustomBackgroundSelected` / `applyCustomBackground` / `clearCustomBackground` | 自定义壁纸（图片 data URL，见 §7.4） |
 
 > Gist 备份会把这些键整体上传（`navigation.js:509-556`，排除 `gistid`、`githubOauthAccessKey`）。
 
