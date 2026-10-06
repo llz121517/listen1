@@ -18,6 +18,7 @@
 
 ### Changed
 
+- 播放页（`.footer` 展开态）改为叠加层：`toggleNowPlaying()` 不再置 `is_window_hidden=0`、不再 `resetWindow()`，曲目列表的 `ng-show` 去掉 `window_type=='list'` 依赖 —— 下层视图保持挂载、滚动位置不丢；关闭走新增快捷路径（只回退视图 + 恢复 offset，不重取数据）；展开期间 `.browser` 用 `nowplaying-open` 锁住底层滚动（`overflow-y: hidden !important`，压过内联的 `scroll`）
 - 新增 `docs/CONVENTIONS.md` §10 分支与发版流程：`main` 原则上只经 `dev` 的 PR 更新、一 PR 一版本、合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`）
 - 顶栏与播放栏的底色透明度由 0.86 降到 0.75（`--nav-background-color`，两套 palette 同步）：两条浮条透一点，自定义壁纸下更明显；同一变量驱动的侧栏顶带卡片与播放列表抽屉一并变透
 - `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，只多 `--nav-height` 与下面那条死声明清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新

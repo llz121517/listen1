@@ -365,6 +365,7 @@ ProfileController (listen1.html 的 <body> 内联)
 经典 palette）已于 2026-10-06 整体移除，见 CHANGELOG。
 
 - 播放区只有一支：`[现代播放区]` 标记那一段（`.footer` 播放栏 + `window_type=='track'` 的展开页与队列抽屉）。
+- 展开页是**叠加层**：`window_type='track'` 只驱动播放区自己的 `slidedown`，不再把下层视图 `display:none`（`toggleNowPlaying` 不置 `is_window_hidden`、不 `resetWindow`），关闭时只回退视图 + 恢复滚动 offset。展开期间 `.browser` 由 `nowplaying-open` 类锁住滚动（见 `css/custom-background.css` 第 7 节）。
 - 映射表在 `js/controller/profile.js` 的 `setTheme` 里（`palettes`）：切换只改写 `#theme-css` 的 href，不往 `<html>` 写任何属性。老用户 localStorage 里的 `white` / `black` 会按深浅迁到 `white2` / `black2`。
 
 | 区块 | 定位锚点 | 样式 |
@@ -390,7 +391,7 @@ ProfileController (listen1.html 的 <body> 内联)
 | 搜索结果（`current_tag==3`） | `current_tag==3 && is_window_hidden==1`；标记 `[搜索页]` |
 | **设置页**（`current_tag==4`，含快捷键表） | `current_tag==4 && is_window_hidden==1`；表格 `.shortcut_table`；标记 `[设置页]` |
 | 登录页（`current_tag==5`） | `current_tag==5 && is_window_hidden==1`；标记 `[登录页]` |
-| 曲目列表窗（`window_type=='list'`） | `window_type=='list'`；标记 `[曲目列表]` |
+| 曲目列表页（歌单/专辑/搜索结果） | `ng-show="is_window_hidden!=1"`；标记 `[曲目列表]` |
 | **播放区**（`.footer` 播放栏；含 `window_type=='track'` 展开页与队列抽屉） | `class="footer"`；标记 `[现代播放区]` |
 
 （每个区块都能用一段唯一文本定位：页面块是 `ng-show="current_tag==…` / `window_type==…` 的容器行，各区块前另有 `<!-- ===== [区域] … ===== -->` 标记。用标记或属性串检索，不要依赖行号。）

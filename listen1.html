@@ -40,7 +40,7 @@
         [搜索页]      ng-show="current_tag==3 && is_window_hidden"
         [设置页]      ng-show="current_tag==4 && is_window_hidden"
         [登录页]      ng-show="current_tag==5 && is_window_hidden"
-        [曲目列表]    ng-show="window_type=='list'"
+        [曲目列表]    ng-show="is_window_hidden!=1"
         [现代播放区]  .footer 播放栏 + .songdetail-wrapper 展开页（唯一实现）
 
       ■ 纪律（破一条就静默出错：不报错、只是"看着不对"）
@@ -598,6 +598,7 @@
                     <div
                     style="overflow-y: scroll;"
                       class="browser flex-scroll-wrapper"
+                      ng-class="{'nowplaying-open': window_type=='track'}"
                       infinite-scroll="scrolling()"
                       content-selector="'#playlist-content'"
                     >
@@ -1650,10 +1651,10 @@
 
                       <!-- track list window-->
                       <div class="page">
-                    <!-- ===== [曲目列表] window_type=='list'（歌单/专辑/搜索结果的曲目页） ===== -->
+                    <!-- ===== [曲目列表] is_window_hidden!=1（歌单/专辑/搜索结果的曲目页；播放页展开时不再隐藏，见 [现代播放区]） ===== -->
                         <div
                           class="playlist-detail"
-                          ng-show="is_window_hidden!=1 && window_type=='list'"
+                          ng-show="is_window_hidden!=1"
                         >
                           <div class="detail-head">
                             <div class="detail-head-cover">

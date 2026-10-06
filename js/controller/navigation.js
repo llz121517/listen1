@@ -110,10 +110,19 @@ angular.module('listenone').controller('NavigationController', [
         return;
       }
       let poped = $scope.window_url_stack.pop();
+      const closedNowPlaying = poped.url === '/now_playing';
       if ($scope.getCurrentUrl() === '/now_playing') {
         poped = $scope.window_url_stack.pop();
       }
       $scope.window_poped_url_stack.push(poped.url);
+      if (closedNowPlaying && $scope.window_url_stack.length > 0) {
+        // 关播放页：下面那层视图从未卸载，退回窗口视图 + 恢复滚动位置即可，不重取数据
+        $scope.window_type = 'list';
+        $timeout(() => {
+          document.getElementsByClassName('browser')[0].scrollTop = poped.offset;
+        }, 0);
+        return;
+      }
       if ($scope.window_url_stack.length === 0) {
         $scope.closeWindow(poped.offset);
       } else {
@@ -131,10 +140,9 @@ angular.module('listenone').controller('NavigationController', [
       if (!$scope.menuHidden) {
         $scope.togglePlaylist();
       }
-      // save current scrolltop
-      $scope.is_window_hidden = 0;
-      $scope.resetWindow();
-
+      // 播放页是叠加层：**不卸载**下面那层视图 —— 不置 is_window_hidden（那会让右侧页面
+      // display:none）、也不 resetWindow（那会清空 songs 并把 .browser 滚回 0）。
+      // 只记下当前滚动位置；展开期间底层滚动由 .browser 的 nowplaying-open 锁住。
       $scope.window_url_stack.push({
         url: '/now_playing',
         offset: document.getElementsByClassName('browser')[0].scrollTop,

@@ -152,3 +152,16 @@ html .main .content .navigation {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }
+
+/* --------------------------------------------------------------------------
+   7. 播放页展开时锁住底层滚动
+      播放页（.footer 的展开态）是叠加层：底下的歌单 / 曲目列表不再被 display:none
+      （toggleNowPlaying 不再置 is_window_hidden），所以要把 .browser 的滚动冻住 ——
+      否则滚轮落在没被面板盖住的边角（1vw / 1vh 的余量、侧栏）上仍会推动下面那层列表。
+      .browser 的 overflow-y 是内联的 `scroll`（listen1.html），普通规则压不住，只能
+      !important；类由 ng-class="{'nowplaying-open': window_type=='track'}" 加。
+      规则放本表而不是 common2.css：common2.css 保持与合并布局前的上游原文一致，
+      fork 追加的外壳补丁都收在这张最后加载的表里。 */
+.main .content .browser.nowplaying-open {
+  overflow-y: hidden !important;
+}
