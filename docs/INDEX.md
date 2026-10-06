@@ -11,7 +11,7 @@
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
 | 规模 | 非 vendor JS 10,432 行 / 28 文件；CSS 6,604 行；i18n 1,225 行；`listen1.html` 4,241 行 |
-| 仓库 | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `master`） |
+| 仓库 | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `main`） |
 | License | MIT（`LICENSE`） |
 
 > **fork 与版本方案**：本仓库是 [llz121517/listen1](https://github.com/llz121517/listen1)，fork 自 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)。
@@ -74,7 +74,7 @@ listen1/
 ├── rules_1.json                         声明式网络请求规则（改 Referer/UA 绕过防盗链，见 §9）
 ├── package.json                         仅 devDependencies（eslint/prettier/husky），version 1.0.0
 ├── .eslintrc.json .prettierrc .gitignore
-├── .github/workflows/eslint.yml         CI：push/PR 到 master 跑 npx eslint .
+├── .github/workflows/eslint.yml         CI：push/PR 到 main 跑 npx eslint .
 ├── README.md                            中文说明（英文版见 docs/en/README.md）
 ├── LICENSE                              MIT
 ├── js/
@@ -508,7 +508,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | ESLint | `.eslintrc.json`：`ecmaVersion: 11`，继承 `airbnb-base` + `prettier`，关闭 `camelcase`、`linebreak-style`；忽略 `**/vendor/*.js` |
 | Prettier | `.prettierrc`：`singleQuote: true`、`trailingComma: "es5"` |
 | 提交钩子 | husky pre-commit → lint-staged：非 vendor 的 `.js` 跑 `eslint --cache --fix`，`.js/.css/.md` 跑 `prettier --write` |
-| CI | `.github/workflows/eslint.yml`：push/PR 到 `master`，Node 16，`npm ci` + `npx eslint .` |
+| CI | `.github/workflows/eslint.yml`：push/PR 到 `main`，Node 16，`npm ci` + `npx eslint .` |
 | 构建 | **无**。发布即源码；Firefox 需手动替换清单并打包 xpi |
 
 ### 清单差异（MV3 vs MV2）
@@ -589,7 +589,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 
 ---
 
-*本索引由代码静态阅读生成，未修改任何源文件。行号以当前工作区 `master` 分支（commit `3f24efa`）为准。*
+*本索引由代码静态阅读生成，未修改任何源文件。行号以当前工作区 `main` 分支（commit `3f24efa`）为准。*
 *已用 grep / read 复核的内容：脚本加载顺序、Provider 注册表、播放链路关键函数、双布局边界锚点、行数统计、`kugou.js:425` / `qq.js:409-428` / `player_thread.js:662` 三处缺陷。*
 *`listen1.html` B 套布局的行号区间按各区块起始标记推算（A/B 两套内容一一对应但不等长），可能存在 ±10 行误差；精确位置请以 `current_tag==` / `window_type==` 标记检索。*
 *2026-10-06（fork `1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,432 行。*

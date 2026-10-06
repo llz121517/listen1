@@ -28,6 +28,7 @@
 - 设置页「最新版本」改为检查本 fork 仓库的 releases
 - i18n 加载口径统一为完整区域码文件（如 `i18n/zh-CN.json`）：不再维护语言白名单，也不会请求未发布的语言文件
 - 总索引 `INDEX.md` 等 root 散落文档统一移入 `docs/`
+- 默认分支由 `master` 改为 `main`，并删除 fork 继承自上游的其余分支
 
 ### Fixed
 
