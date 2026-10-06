@@ -136,13 +136,12 @@ html .main .content .navigation {
      取色注意：--nav-background-color 只在现代 palette（iparanoid2 / origin2）里有定义，
      经典 palette（iparanoid / origin）没有 —— 直接用它会在经典族取不到值而变透明，
      所以经典族改用不透明的 --content-background-color（与侧栏同色）。
-     尺寸不写死：高度由外层 .menu-control-wrap（经典 49px；现代跟随 .menu-control 的 74px）
-     与 flex 拉伸决定，宽度交给 left:0 / right:0，跟侧栏块一样宽。 */
+     尺寸不写死：宽度交给 left / right，跟侧栏块一样宽；高度取 --nav-height
+     （即 .navigation 的高度），卡片下缘与顶栏下缘齐平。 */
 .menu-control-wrap {
   position: relative;
   --menu-control-card-bg: var(--nav-background-color, var(--content-background-color));
-  /* 侧栏顶栏带的高度：卡片按它取高（现代 79px、经典 49px），与顶栏高度变量分开 */
-  --menu-control-height: 79px;
+  /* 卡片下缘对齐顶栏：高度取 --nav-height，见下方现代族规则 */
 }
 
 html[data-theme-family='classic'] .menu-control-wrap {
@@ -167,13 +166,16 @@ html[data-theme-family='classic'] .menu-control-card {
   flex: 1;
 }
 
-/* 现代族：与悬浮毛玻璃顶栏同款（同色 + 同模糊），高度与侧栏那条 .menu-control 占位带一致
-   （--menu-control-height：现代 79px、经典 49px），贴顶（absolute + top: 0）。
-   注意与 --nav-height 分开：**顶栏高度不动**，卡片跟的是侧栏带宽。 */
+/* 现代族：与悬浮毛玻璃顶栏同款（同色 + 同模糊）。
+   高度对齐 .navigation（--nav-height，现代 64px）：卡片上缘贴顶、下缘与顶栏下缘齐平，
+   两段在窗口上沿连成同一条带。占位带 .menu-control 仍是 79px 的拖拽区，不下压内容。
+   左侧延伸至窗口左边界：.sidebar 有 padding-left: 1vw（common2.css 的 .main .sidebar），
+   卡片左移同样的量把它抵消，1vw 的缝不再露出来。 */
 html[data-theme-family='modern'] .menu-control-card,
 html:not([data-theme-family]) .menu-control-card {
   display: block;
-  height: var(--menu-control-height, 79px);
+  height: var(--nav-height, 64px);
+  left: -1vw;
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }

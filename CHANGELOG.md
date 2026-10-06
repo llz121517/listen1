@@ -19,6 +19,7 @@
 
 ### Changed
 
+- 现代族侧栏顶栏卡片 `.menu-control-card` 高度对齐 `.navigation`（取 `--nav-height`，不再跟随 79px 的占位带），并把左边界外扩 `-1vw` 抵消侧栏内边距、一直铺到窗口左边缘
 - 经典族顶栏改为**流外**（`position: static` → `absolute`），且不再写死透明底（用 `--nav-background-color`，经典族已别名成 `--content-background-color`）：内容区从容器顶部开始，顶栏**盖住**左侧．`menu-control` 那条占位带
 - 顶栏向左右扩到窗口边缘（左 `margin-left: -1vw` 吃掉侧栏内边距、右去掉 20px 余量）：卡片上下两条边一样宽、与窗口同宽；只改盒子外边距，卡片内排布不动、按钮不偏移；自定义背景下顶栏另铺一层 `--custom-bg-panel-tint`，与侧栏/页面连成同一块面板
 - 修复经典族封面浮起动画失效：动效禁用规则的选择器因 `:not(.classic-player *)` 达到 `(0,2,1)` 特异性，普通白名单 `(0,1,1)` 同级别 `!important` 压不住（实测 `.u-cover img` 的 `transition` 被算成 `none`）—— 白名单选择器补上 `.body` 凑到同特异性、靠源序取胜
