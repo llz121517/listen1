@@ -10,16 +10,20 @@
 
 语义化版本（SemVer）`MAJOR.MINOR.PATCH`：不兼容改动升 `MAJOR`、向后兼容地新增升 `MINOR`、向后兼容地修复升 `PATCH`（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7）。扩展清单的 `version` 只接受 1~4 段纯数字，所以只用三段 `x.y.z`。
 全仓库统一：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json` / `config/about.json`（界面展示值）。
-发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
+发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD / vX.Y.Z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
 
 ## [Unreleased]
+
+### Changed
+
+- 播放页的外语歌词翻译行：未唱到时字号 16 → 13px、与原句间距 41 → 12px；唱到时放大但**比原句小一档**（翻译 20px，原句 highlight 仍是 26px）
+- 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
+- 「显示专辑封面作为背景」开启时（`has-cover-bg` 类）：播放页面板底色往同色相的实底色掺到 ≈0.84 alpha（对下层更不透明），封面层 `.bg` 的模糊由 `blur(200px)` 减到 `120px`（contrast / brightness 不变）
 
 ## [2.1.0] - 2026-10-06
 
 ### Changed
 
-- 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
-- 「显示专辑封面作为背景」开启时（`has-cover-bg` 类）：播放页面板底色往同色相的实底色掺到 ≈0.84 alpha（对下层更不透明），封面层 `.bg` 的模糊由 `blur(200px)` 减到 `120px`（contrast / brightness 不变）
 - 播放页（`.footer` 展开态）改为叠加层：`toggleNowPlaying()` 不再置 `is_window_hidden=0`、不再 `resetWindow()`，曲目列表的 `ng-show` 去掉 `window_type=='list'` 依赖 —— 下层视图保持挂载、滚动位置不丢；关闭走新增快捷路径（只回退视图 + 恢复 offset，不重取数据）；展开期间 `.browser` 用 `nowplaying-open` 锁住底层滚动（`overflow-y: hidden !important`，压过内联的 `scroll`）
 - 新增 `docs/CONVENTIONS.md` §10 分支与发版流程：`main` 原则上只经 `dev` 的 PR 更新、一 PR 一版本、合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`）
 - 顶栏与播放栏的底色透明度由 0.86 降到 0.75（`--nav-background-color`，两套 palette 同步）：两条浮条透一点，自定义壁纸下更明显；同一变量驱动的侧栏顶带卡片与播放列表抽屉一并变透

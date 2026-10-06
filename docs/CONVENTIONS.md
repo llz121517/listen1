@@ -93,5 +93,6 @@
 
 - **`main` 原则上只通过 `dev` 的 PR 更新**：日常改动先落到 `dev`，再由 `dev` 开 PR 合并进 `main`；不直接在 `main` 上提交（紧急修复也走同一条路径，避免两套口径）。
 - **一 PR 一版本**：一个 PR 只对应一次版本号递增（§7 的 SemVer）。提 PR 前，该 PR 里必须已经包含：CHANGELOG 起好该版本的小节 `## [x.y.z] - YYYY-MM-DD`、`[Unreleased]` 留空、全仓库版本号同步改完。
-- **合并提交标题 = 日期 + 版本号**：形如 `2026-10-06 2.1.0`（`YYYY-MM-DD x.y.z`，日期取合并当天）。因此合并**必须产生合并提交**（`git merge --no-ff` 或 GitHub 的 merge commit），不要用 squash / rebase 合并 —— 否则这个标题留不下来。
+- **合并提交标题 = 日期 + 版本号**：形如 `2026-10-06 / v2.1.0`（`YYYY-MM-DD / vX.Y.Z`，日期取合并当天）。因此合并**必须产生合并提交**（`git merge --no-ff` 或 GitHub 的 merge commit），不要用 squash / rebase 合并 —— 否则这个标题留不下来。
+- 标题里的 `vX.Y.Z` 只是**文字标签**，不等于 git tag。tag 现状：从上游继承的 81 个历史 tag 已于 2026-10-06 全部删除（本地 + 远端都删了，`git tag` 与 `git ls-remote --tags` 现在都是空的），fork 自己的发布还没打 tag —— 所以 `git tag v2.1.0` 之类不会再和上游撞名。要打就打在 `main` 的合并提交上并显式推送（`git push origin v2.1.0`）。
 - PR 内的普通提交照旧用 Conventional Commits（§9）；合并提交只承载"日期 + 版本号"，不再写别的。
