@@ -58,9 +58,28 @@ html[data-theme-family='classic'] body .body {
   border-radius: 0;
 }
 
+/* 原版经典的底色画在整列 .sidebar 上（common.css:155-160），现代画在 .sidebar-content 这个圆角块上。
+   经典族把底色搬回整列：顶部 43px 占位带（.menu-control 是 .sidebar-content 的兄弟节点）也被侧栏底色盖住，
+   不会露出空白带；同时去掉现代给侧栏留的 1vw 左内边距，让侧栏完全靠左（原版就是贴边）。 */
+html[data-theme-family='classic'] .main .sidebar {
+  background: var(--sidebar-background-color);
+  padding-left: 0;
+}
+
 html[data-theme-family='classic'] .main .sidebar-content {
   border-radius: 0;
-  background: var(--sidebar-background-color);
+  background: transparent;
+}
+
+/* 侧栏高度：common2.css 用的是现代"视口硬算"值 calc(100vh - 210px)（= 固定悬浮播放栏 100px + 外壳其他预留 110px），
+   但经典播放栏是在流内的 60px（.classic-player .footer），可用高度是 100vh - 60px，
+   于是经典族侧栏底边比播放栏高出约 150px。原版 common.css 的 .sidebar 不写高度、靠 flex 拉伸，这里改成跟随容器：
+   .sidebar-content 不是 flex item —— 它的父级 .flex-scroll-wrapper（common2.css:104）是块级容器，
+   真正吃 flex: 1 的是那层 wrapper（它填满 .sidebar）。所以这里不能用 flex，只能 height: 100% 跟着 wrapper 走；
+   播放栏隐藏时 wrapper 变高，侧栏随之变高，不需要再写 .footerdef 的视口值。现代族不受影响（选择器带 data-theme-family 限定）。 */
+html[data-theme-family='classic'] .main .sidebar-content,
+html[data-theme-family='classic'] .main .sidebar-content.footerdef {
+  height: 100%;
 }
 
 html[data-theme-family='classic'] .sidebar-content .logo-content {
@@ -100,8 +119,28 @@ html[data-theme-family='classic'] .sidebar ul li.dragover .sidebar-block {
   border-radius: var(--default-border-radius);
 }
 
-/* 顶部导航条：经典是 46px 平面条 + 下边框 */
+/* 侧栏顶部占位带：现代 74px，是给"64px 绝对定位顶栏"留的位置；原版经典是 43px（common.css:188-192），
+   配 46px 在流内的顶栏。不一起还原的话侧栏首项会比原版低 31px、和内容区顶部对不齐。
+   原版这条还有 width: 125px，这里不还原 —— 侧栏收起态只有 60px 宽，125px 会溢出。 */
+html[data-theme-family='classic'] .sidebar .menu-control {
+  height: 43px;
+}
+
+/* 顶部导航条：原版经典是"46px 平面条、在流内、无底色"（common.css:170-177）；
+   现代是 64px + position: absolute + 毛玻璃，浮在内容之上（内容顶部滑到它下面）。
+   经典族把位置、尺寸、底色一并还原，内容区才像原版那样从顶栏下方开始。 */
 html[data-theme-family='classic'] .main .content .navigation {
+  position: static;
+  height: 46px;
+  flex: 0 0 46px;
+  margin-right: 0;
+  /* 46px 里内容垂直居中只剩 7px 上缝，搜索框看着贴顶：给一点上内边距把它压下来；
+     border-box 把总高锁在 46px，下面的内容区不跟着移。 */
+  box-sizing: border-box;
+  padding-top: 8px;
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   border-bottom: 1px solid var(--line-default-color);
 }
 
@@ -312,4 +351,17 @@ html[data-theme-family='classic'] .body *:not(.classic-player):not(.classic-play
 html[data-theme-family='classic'] .body,
 html[data-theme-family='classic'] .body * {
   animation: none !important;
+}
+
+/* 上面整树禁了 transition，但经典的侧栏收起/展开要保留动效 —— 原版经典没有可折叠侧栏，
+   这是合并后共用外壳带来的交互，禁用后 60↔200 的宽度变化会瞬间跳变。
+   只放行 common2.css 里侧栏自己声明过 transition 的那几个元素：.sidebar-content（宽度 60↔200）、
+   logo 区（.logo-content 下边框、.logo-svg 内边距、.logo-title svg 渐显）与分组标题 .menu-title .title（渐显）。
+   选择器带 .body .main .sidebar 前缀，特异性高于上面的禁用规则，且排在它后面，确保 !important 压得住。 */
+html[data-theme-family='classic'] .body .main .sidebar .sidebar-content,
+html[data-theme-family='classic'] .body .main .sidebar .sidebar-content .logo-content,
+html[data-theme-family='classic'] .body .main .sidebar .sidebar-content .logo-content .logo-svg,
+html[data-theme-family='classic'] .body .main .sidebar .sidebar-content .logo-content .logo-title svg,
+html[data-theme-family='classic'] .body .main .sidebar .menu-title .title {
+  transition: 0.2s !important;
 }

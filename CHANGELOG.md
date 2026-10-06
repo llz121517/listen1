@@ -14,26 +14,33 @@
 
 ### Changed
 
-- `docs/CONVENTIONS.md` 补 CHANGELOG 纪律：改完默认顺带更新日志、新条目默认写进 `[Unreleased]`、`Fixed` 项必须自审归因（本次改动引入或改变的行为一律改写成 `Changed`）
+- 侧栏网易云 / QQ 音乐标识改为单色（`currentColor` 跟随主题深浅）：保留原图标几何、只留中间标记（去掉外层方框与被裁掉的文字层），线条由 2.6px 收细到约 2.0px，音符下部开口处为空心圆
+- 经典主题侧栏底边与 60px 播放栏之间空出的约 150px：侧栏高度改为跟随容器（`height: 100%`），底边贴住播放栏
+- 经典主题顶部同样还原原版口径：侧栏占位带 `menu-control` 74px → 43px，顶栏 64px 绝对定位 + 毛玻璃 → 46px 在流内、无底色
+- 经典主题侧栏底色搬到整列 `.sidebar`（原版做法）：顶部占位带不再露空白，并去掉现代留的 1vw 左内边距，侧栏完全靠左
+- 经典主题侧栏收起/展开恢复动效（宽度 0.2s、logo 与分组标题渐显），其余现代动效仍禁用
+- 经典主题顶栏加 8px 上内边距（`box-sizing: border-box` 锁住 46px 总高），搜索框不再贴顶
+- `docs/CONVENTIONS.md` 补 CHANGELOG 纪律：默认写 `[Unreleased]`、`Fixed` 自审归因、详略度对齐 `1.0.0`、只在被要求时提交
 
 ## [1.1.0] - 2026-10-06
 
 ### Added
 
-- `listen1.html` 顶部加"结构地图 / 纪律 / 坑点"注释块（文件顶部、样式表之后），各区块前加 `[区域]` 标记注释：样式表加载顺序、区域划分、播放区 `.player-modern` 作用域纪律、z-index 顺序、同名 id 等坑点
-- `docs/CONVENTIONS.md`：项目约定（文档不写具体行号、CHANGELOG 纪律、单套 DOM + 四套 palette、经典分支冻结、层叠与注释纪律、提交前自检）
+- `listen1.html` 顶部加"结构地图 / 纪律 / 坑点"注释块，各区块前加 `[区域]` 标记注释
+- `docs/CONVENTIONS.md`：项目约定（不写行号、CHANGELOG 纪律、主题与层叠与注释纪律）
 
 ### Changed
 
-- **外壳只保留一套布局（播放区仍按主题族分叉）**：删掉 `listen1.html` 里重复的那套经典布局，四个主题共用原来的"新版"结构 + `css/common2.css`，主题只换 palette；`css/common.css` 不再是运行期样式表
-- 经典主题（white / black）新增兼容层 `css/compat-classic.css`：把经典 palette 变量别名到结构需要的现代变量，并把外壳外观换成经典惯用法（2px 圆角、平面色块、1px 边框、14px 滚动条，去掉毛玻璃与缩放动效）—— 换之前经典主题套的是新版外壳样式，侧栏 / 按钮 / 滚动条 / 封面都是现代外观；动效只禁共用外壳：`animation` 全禁，`transition` 用 `:not()` 排除 `.classic-player` 子树，保留经典播放区原有的下滑 / 淡入 / 菜单上滑
-- 经典主题的播放栏与"正在播放"页改用 `ng-if` 切回原版 HTML（`listen1.html` 的 `.classic-player` 分支 + `css/classic-player.css`），不再用 CSS 模拟；现代播放区则包一层 `.player-modern` 做作用域，`css/common2.css` 里 150 处播放区选择器前缀（139 条规则，以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根）全部加此前缀 —— 加之前这些选择器会命中经典分支的同名类，把 7px 图标内边距 + 圆角、播放栏 `98vw` + `1vh 1vw` 边距、毛玻璃播放菜单、`54vh` 封面、`-webkit-line-clamp` 标题等现代值带进经典播放区
-- 经典播放区改成整块一个层叠上下文（`.classic-player { position: relative; z-index: 110 }`），内部只有两级：播放页 `1` < 播放栏 / 播放列表菜单 `2` —— 播放页铺满窗口并盖住顶栏与侧栏，外壳以后再新增 z-index 也压不住播放区（改之前 `common2.css` 给侧栏 svg 的 `10` 和顶栏的 `100` 都压在播放页之上，顶栏浮着还破坏原版的沉浸感）
-- 经典播放页的收起由原版的 `top: calc(100% - 60px)` 挤压改为整页 `transform: translateY(calc(100% + 60px))` 下滑、高度不变：挤压会把封面背景和内容一起压扁，看起来像"背景先消失、没等收起动画走完"（本 fork 相对原版的一处有意偏离，注释写在 `css/classic-player.css`）
-- 歌单内搜索框的 `id="search-input"` 改为 `id="playlist-search-input"`，消掉与导航搜索框的同名 id（`navigation.js` 的 `f` 快捷键此前取到的永远是文档里第一个）
-- `js/controller/profile.js` 的 `setTheme` 改为表驱动（palette 映射 + 结构样式），并在 `<html>` 上写 `data-theme` / `data-theme-family`
-- `docs/INDEX.md` 与各处注释里的 `listen1.html:行号` 引用改为搜索串定位（`[区域]` 标记、属性串、`class="classic-player"` / `class="player-modern"`、符号名）：`listen1.html` 由 4,241 行降到 2,688 行后，行号每次编辑都会失真（约定见 `docs/CONVENTIONS.md`）
+- 四个主题共用一套外壳 DOM（`css/common2.css` 为唯一结构表），删除 `listen1.html` 里重复的经典布局
+- 经典主题（white / black）新增兼容层 `css/compat-classic.css`：变量别名 + 外壳外观还原（圆角、色块、边框、滚动条；只禁外壳动效）
+- 经典播放栏与"正在播放"页改用 `ng-if` 切回原版 HTML（`css/classic-player.css`）；现代播放区包 `.player-modern`，`common2.css` 的播放区选择器全部加此前缀
+- 经典播放区整块成一个层叠上下文（`.classic-player` `110`，内部播放页 `1` < 播放栏 `2`），外壳不再压住播放页
+- 经典播放页收起由 `top` 挤压改为整页 `transform` 下滑
+- 歌单内搜索框 id 改为 `#playlist-search-input`，消掉与导航的同名 id
+- `js/controller/profile.js` 的 `setTheme` 改为表驱动，并在 `<html>` 上写 `data-theme` / `data-theme-family`
+- `docs/INDEX.md` 与各处注释里的 `listen1.html:行号` 改为搜索串定位
 - 上游更新日志归档目录由 `docs/archive/` 移到仓库根的 `origin/`
+- 版本号全仓库统一到 `1.1.0`
 
 ## [1.0.0] - 2026-10-06
 
