@@ -6,7 +6,7 @@
 | 项 | 值 |
 | --- | --- |
 | 项目 | Listen 1（Chrome / Firefox 扩展，同时作为 Listen1 桌面版渲染层） |
-| 版本 | `Liuli-1.0.0`（本 fork 独立编号；`package.json`/`package-lock.json` 写 `Liuli-1.0.0`，`manifest*.json` 写纯数字 `1.0.0` + `version_name`，界面展示值在 `config/about.json`） |
+| 版本 | `1.0.0`（本 fork 版本号；权威值在 `package.json`/`package-lock.json`/`manifest*.json`，界面展示值来自 `config/about.json`） |
 | 一句话 | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble |
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
@@ -15,8 +15,8 @@
 | License | MIT（`LICENSE`） |
 
 > **fork 与版本方案**：本仓库是 [llz121517/listen1](https://github.com/llz121517/listen1)，fork 自 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)。
-> 版本号自 `Liuli-1.0.0` 起独立编号，以避免与上游 `2.33.0` 混淆；上游更新日志已归档到 [`docs/archive/`](archive/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
-> 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此 `manifest.json` / `manifest_firefox.json` 写 `1.0.0`，用 `version_name` 承载 `Liuli-1.0.0`；`package.json` / `package-lock.json` 直接写 `Liuli-1.0.0`（npm 11 的 `install`/`ci`/`pack` 实测接受）。
+> 版本号为 `1.0.0`（重新编号，不带前缀，以避免与上游 `2.33.0` 混淆）；上游更新日志已归档到 [`docs/archive/`](archive/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
+> 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此全仓库统一写 `1.0.0`（不再使用 `version_name`）；界面展示值来自 `config/about.json`。
 
 ---
 
@@ -72,7 +72,7 @@ listen1/
 ├── manifest.json                        Manifest V3：Chrome/Edge
 ├── manifest_firefox.json                Manifest V2：Firefox
 ├── rules_1.json                         声明式网络请求规则（改 Referer/UA 绕过防盗链，见 §9）
-├── package.json                         仅 devDependencies（eslint/prettier/husky），version Liuli-1.0.0
+├── package.json                         仅 devDependencies（eslint/prettier/husky），version 1.0.0
 ├── .eslintrc.json .prettierrc .gitignore
 ├── .github/workflows/eslint.yml         CI：push/PR 到 master 跑 npx eslint .
 ├── README.md                            中文说明（英文版见 docs/en/README.md）
@@ -575,7 +575,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | --- | --- |
 | [README.md](../README.md) | 中文说明、安装方式、更新日志入口 |
 | [docs/en/README.md](en/README.md) | 英文版说明 |
-| [CHANGELOG.md](../CHANGELOG.md) | **本 fork** 的更新日志（自 `Liuli-1.0.0` 起）与版本号约定 |
+| [CHANGELOG.md](../CHANGELOG.md) | **本 fork** 的更新日志（自 `1.0.0` 起）与版本号约定 |
 | [docs/archive/CHANGELOG_UPSTREAM.md](archive/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
 | [docs/archive/CHANGELOG_UPSTREAM_EN.md](archive/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |
 | [LICENSE](../LICENSE) | MIT |
@@ -592,4 +592,4 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 *本索引由代码静态阅读生成，未修改任何源文件。行号以当前工作区 `master` 分支（commit `3f24efa`）为准。*
 *已用 grep / read 复核的内容：脚本加载顺序、Provider 注册表、播放链路关键函数、双布局边界锚点、行数统计、`kugou.js:425` / `qq.js:409-428` / `player_thread.js:662` 三处缺陷。*
 *`listen1.html` B 套布局的行号区间按各区块起始标记推算（A/B 两套内容一一对应但不等长），可能存在 ±10 行误差；精确位置请以 `current_tag==` / `window_type==` 标记检索。*
-*2026-10-06（fork `Liuli-1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,432 行。*
+*2026-10-06（fork `1.0.0`）：版本号自上游 `2.33.0` 重置，上游更新日志归档至 `docs/archive/`；新增日语（现 7 语言 × 173 键）。语言按钮改为按 `config/languages.json` 动态生成（按钮文本取自各语言文件的 `_LANGUAGE_NAME`），「关于」页信息（版本展示 / 官网 / 邮箱 / 反馈链接 / 主题署名）抽到 `config/about.json`。因此 `profile.js` 为 198 行（`setLang:149` / `setTheme:175` / 主题映射 `:178-183`），`listen1.html` 为 4,241 行，非 vendor JS 为 10,432 行。*

@@ -2,22 +2,18 @@
 
 本仓库是 [Listen 1](https://github.com/listen1/listen1_chrome_extension) 的 fork：**llz121517/listen1**。
 本文件记录本 fork 所有值得注意的改动，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
-版本号自 `Liuli-1.0.0` 起独立编号，上游历史日志已原样归档：
+版本号为 `1.0.0`（重新编号，不带前缀），上游历史日志已原样归档：
 
 - 上游历史日志（中文）：[docs/archive/CHANGELOG_UPSTREAM.md](docs/archive/CHANGELOG_UPSTREAM.md)
 - 上游历史日志（英文）：[docs/archive/CHANGELOG_UPSTREAM_EN.md](docs/archive/CHANGELOG_UPSTREAM_EN.md)
 
 ## 版本号约定
 
-| 位置 | 写法 |
-| --- | --- |
-| `package.json` / `package-lock.json` | `Liuli-1.0.0` |
-| `manifest.json` / `manifest_firefox.json` | `"version": "1.0.0"` + `"version_name": "Liuli-1.0.0"`（清单的 `version` 只接受纯数字） |
-| 界面与文档 | `Liuli-1.0.0` |
+全仓库统一为 `1.0.0`：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json`（扩展清单的 `version` 只接受 1~4 段纯数字）/ `config/about.json`（界面展示值）。
 
 ## [Unreleased]
 
-## [Liuli-1.0.0] - 2026-10-06
+## [1.0.0] - 2026-10-06
 
 ### Added
 
@@ -28,7 +24,7 @@
 
 ### Changed
 
-- 版本号由上游 `2.33.0` 重置为 `Liuli-1.0.0`；上游更新日志归档到 `docs/archive/`，本文件成为 fork 日志
+- 版本号由上游 `2.33.0` 重置为 `1.0.0`；上游更新日志归档到 `docs/archive/`，本文件成为 fork 日志
 - 设置页「最新版本」改为检查本 fork 仓库的 releases
 - i18n 加载口径统一为完整区域码文件（如 `i18n/zh-CN.json`）：不再维护语言白名单，也不会请求未发布的语言文件
 - 总索引 `INDEX.md` 等 root 散落文档统一移入 `docs/`

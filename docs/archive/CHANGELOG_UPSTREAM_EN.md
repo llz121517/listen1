@@ -4,7 +4,7 @@ Archived copy of the upstream Listen 1 changelog. Do not edit by hand.
 Source: README_EN.md (upstream repo listen1/listen1_chrome_extension)
 Extracted: original README_EN.md lines 48-469 (`## Changelog` through the 2018-12-21 entry)
 Extraction date: 2026-10-06
-Baseline commit: 3f24efa (last commit before this fork reset the version to Liuli-1.0.0)
+Baseline commit: 3f24efa (last commit before this fork reset the version to 1.0.0)
 Note: the body below is the upstream log verbatim. This fork's own log lives in CHANGELOG.md.
 -->
 

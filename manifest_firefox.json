@@ -54,7 +54,6 @@
     "webRequestBlocking"
   ],
   "version": "1.0.0",
-  "version_name": "Liuli-1.0.0",
   "web_accessible_resources": ["images/*"],
   "content_scripts": [
     {
