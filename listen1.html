@@ -220,14 +220,6 @@
                           {{_CANCEL}}
                         </button>
                       </div>
-                      <div class="dialog-footer">
-                        <button
-                          class="btn btn-danger remove-button"
-                          ng-click="removeMyPlaylist(list_id)"
-                        >
-                          {{_REMOVE_PLAYLIST}}
-                        </button>
-                      </div>
                     </div>
                     <div class="dialog-connect-lastfm" ng-show="dialog_type==4">
                       <p>{{_OPENING_LASTFM_PAGE}}</p>
@@ -1774,6 +1766,16 @@
                                     <svg t="1659668939470" class="icon feather" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2273" width="512" height="512"><path d="M725.333333 938.666667H298.666667a256 256 0 0 1-256-256V341.333333h128v298.666667a170.666667 170.666667 0 0 0 170.666666 170.666667h341.333334a170.666667 170.666667 0 0 0 170.666666-170.666667V341.333333h128v341.333334a256 256 0 0 1-256 256zM256 426.666667h128V213.333333h256v213.333334h128l-256 256z m128-341.333334h256v85.333334H384V85.333333z" fill="currentColor" p-id="2274"></path></svg>
                                   
                                     <span>{{_IMPORT}}</span>
+                                  </div>
+                                </div>
+                                <div
+                                  class="playlist-button edit-button remove-button"
+                                  ng-show="is_mine && !is_local"
+                                  ng-click="removeMyPlaylist(list_id)"
+                                >
+                                  <div class="play-list">
+                                    <span class="icon li-del"></span
+                                    ><span>{{_REMOVE_PLAYLIST}}</span>
                                   </div>
                                 </div>
                               </div>

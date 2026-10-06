@@ -812,6 +812,14 @@ ul.detail-songlist li .desc div.title:hover{
   fill: rgb(102, 102, 102);
 }
 
+/* 删除歌单：与同行按钮同款药丸，图标用图标字体的 li-del —— 跟曲目列表里「移出歌单」同一个字形，
+   也跟同行图标一样是实心、吃 color（同行那些内联 svg 的路径都写着 fill="currentColor"，
+   那条 stroke: rgb(102, 102, 102) 其实压不过路径自带的 fill）。悬浮时图标与文字变红；
+   红色两套主题同值，不属于 §4 说的「主题差异」，因此不新增 palette 变量。 */
+.playlist-button-list .playlist-button.remove-button:hover .play-list {
+  color: #e5484d;
+}
+
 /* page playlist detail end */
 
 /* page song detail start */
@@ -2364,8 +2372,7 @@ svg.searchspinner {
   margin-top: 20px;
 }
 
-.dialog-body .buttons button,
-.dialog-body .dialog-footer button {
+.dialog-body .buttons button {
   margin-right: 20px;
 
   font-size: 16px;
@@ -2376,8 +2383,7 @@ svg.searchspinner {
   background-color: var(--theme-color-hover);
   color: var(--theme-color);
 }
-.dialog-body .buttons button:hover,
-.dialog-body .dialog-footer button:hover {
+.dialog-body .buttons button:hover {
   transform: scale(1.2);
 }
 .dialog .detail-songlist li:hover {
@@ -2469,10 +2475,6 @@ svg.searchspinner {
   line-height: 30px;
 }
 
-.dialog-editplaylist .dialog-footer {
-  position: absolute;
-  bottom: 20px;
-}
 .dialog-body .field-name {
   margin: 10px 0 5px 0;
 }
