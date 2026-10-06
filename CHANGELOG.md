@@ -12,13 +12,16 @@
 
 ## [Unreleased]
 
-_尚无未发布改动。_
+### Changed
+
+- `docs/CONVENTIONS.md` 补 CHANGELOG 纪律：改完默认顺带更新日志、新条目默认写进 `[Unreleased]`、`Fixed` 项必须自审归因（本次改动引入或改变的行为一律改写成 `Changed`）
 
 ## [1.1.0] - 2026-10-06
 
 ### Added
 
 - `listen1.html` 顶部加"结构地图 / 纪律 / 坑点"注释块（文件顶部、样式表之后），各区块前加 `[区域]` 标记注释：样式表加载顺序、区域划分、播放区 `.player-modern` 作用域纪律、z-index 顺序、同名 id 等坑点
+- `docs/CONVENTIONS.md`：项目约定（文档不写具体行号、CHANGELOG 纪律、单套 DOM + 四套 palette、经典分支冻结、层叠与注释纪律、提交前自检）
 
 ### Changed
 
@@ -29,6 +32,7 @@ _尚无未发布改动。_
 - 经典播放页的收起由原版的 `top: calc(100% - 60px)` 挤压改为整页 `transform: translateY(calc(100% + 60px))` 下滑、高度不变：挤压会把封面背景和内容一起压扁，看起来像"背景先消失、没等收起动画走完"（本 fork 相对原版的一处有意偏离，注释写在 `css/classic-player.css`）
 - 歌单内搜索框的 `id="search-input"` 改为 `id="playlist-search-input"`，消掉与导航搜索框的同名 id（`navigation.js` 的 `f` 快捷键此前取到的永远是文档里第一个）
 - `js/controller/profile.js` 的 `setTheme` 改为表驱动（palette 映射 + 结构样式），并在 `<html>` 上写 `data-theme` / `data-theme-family`
+- `docs/INDEX.md` 与各处注释里的 `listen1.html:行号` 引用改为搜索串定位（`[区域]` 标记、属性串、`class="classic-player"` / `class="player-modern"`、符号名）：`listen1.html` 由 4,241 行降到 2,688 行后，行号每次编辑都会失真（约定见 `docs/CONVENTIONS.md`）
 - 上游更新日志归档目录由 `docs/archive/` 移到仓库根的 `origin/`
 
 ## [1.0.0] - 2026-10-06
