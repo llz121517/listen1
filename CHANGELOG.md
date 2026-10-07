@@ -14,6 +14,8 @@
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-07
+
 ### Changed
 
 - 静音 / 音量状态收敛到播放器：`Player` 持有权威 `_volume` / `_muted`，唯一写 Howler 的出口是 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`，因为 Howler 在全局静音时会短路 `volume()`）；`new Howl` 不再传 `mute`，改为在 `onplay` 里兜底重放一次状态；`BG_PLAYER:VOLUME` + `BG_PLAYER:MUTE` 合并为一条 `BG_PLAYER:AUDIO_STATE {volume, muted}`；门面收敛为 `setVolume` / `adjustVolume` / `setMuted` / `toggleMuted` / `getAudioState`（删掉 `mute` / `unmute` 与 `status.volume` / `status.muted`）；`$scope.volume` / `$scope.mute` 只由 `AUDIO_STATE` 订阅写，持久化只写 `player-settings` 的 `volume` 键（400ms 防抖，避免整对象回写覆盖 `nowplaying_track_id`）
