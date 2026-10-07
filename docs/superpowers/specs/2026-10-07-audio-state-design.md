@@ -78,6 +78,7 @@
 
   顺序**不能反**：Howler 的短路依据是全局 `_muted`，而它只在 `Howler.mute()` 里被改写；先写音量会撞上短路（`_volume` 更新了、节点没有），随后 `mute(false)` 又不会回填 `node.volume`。审查曾提出"语义 A 下正反序皆可"，此处不采纳——两者的作用对象不同（Player 的 `_muted` 字段 vs Howler 的全局标志）。
 - `new Howl({…})` **删除 `mute: self.muted`**：让音源级 `_muted` 恒为 false，消掉 OR 链里的 `sound._muted` 一项；
+- **全局两条之外，还要对当前 Howl 再落一次**（实施期补，来自用户定位的复播路径）：`Howler.mute()` / `Howler.volume()` 只遍历 `Howler._howls`，而 `skip()` 开头的 `Howler.unload()` 会把播过的 Howl 从 `_howls` 摘掉，`finishLoad` 又复用同一个 Howl 对象（随机模式复播必走这条）——于是全局遍历对这个正在播的 Howl 无效，表现就是"复播时拖音量 / 切静音不即时生效，要等下次切歌"。`applyAudioState()` 末尾对 `this.currentHowl` 再调一次 `mute()` / `volume()`（Howl 自己的这两个方法直接写 node）即可覆盖；对正常在册的 Howl 是幂等的（group 音量恒为 1，写进去仍等于 `Howler.volume()`）；
 - OR 链里还剩 `|| node.muted`（HTML5 池粘滞，见 §1.2），因此**不宣称"引擎天然自愈"**，改为在 `new Howl` 的 `onplay` 回调里**兜底调一次 `applyAudioState()`**：该回调在 Howler 的 `playHtml5` 写完 `node.muted`/`node.volume` 之后触发，`Howler.mute()` 会把本 Howl 各节点的 `muted` 纠正为 `sound._muted`（false），`Howler.volume()` 顺手把音量写正 —— 池粘滞与缓存 Howl 两条路径都在这里收敛；
 - 删除 `d1f7615` 在 `set volume` 里加的 guard 与那段注释（职责已由 `applyAudioState()` 承担），并去掉该路径上的 `sendFrameUpdate()`（音量变化不需要重发帧更新，`adjustVolume` 里那次重复发送也一并去掉）。
 
