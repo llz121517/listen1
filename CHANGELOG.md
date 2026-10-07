@@ -10,9 +10,24 @@
 
 语义化版本（SemVer）`MAJOR.MINOR.PATCH`：不兼容改动升 `MAJOR`、向后兼容地新增升 `MINOR`、向后兼容地修复升 `PATCH`（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7）。扩展清单的 `version` 只接受 1~4 段纯数字，所以只用三段 `x.y.z`。
 全仓库统一：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json` / `config/about.json`（界面展示值）。
-发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
+发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD / vX.Y.Z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
 
 ## [Unreleased]
+
+## [2.2.0] - 2026-10-07
+
+### Changed
+
+- 静音 / 音量状态收敛到播放器：`Player` 持有权威 `_volume` / `_muted`，唯一写 Howler 的出口是 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`，因为 Howler 在全局静音时会短路 `volume()`）；`new Howl` 不再传 `mute`，改为在 `onplay` 里兜底重放一次状态；`BG_PLAYER:VOLUME` + `BG_PLAYER:MUTE` 合并为一条 `BG_PLAYER:AUDIO_STATE {volume, muted}`；门面收敛为 `setVolume` / `adjustVolume` / `setMuted` / `toggleMuted` / `getAudioState`（删掉 `mute` / `unmute` 与 `status.volume` / `status.muted`）；`$scope.volume` / `$scope.mute` 只由 `AUDIO_STATE` 订阅写，持久化只写 `player-settings` 的 `volume` 键（400ms 防抖，避免整对象回写覆盖 `nowplaying_track_id`）
+- 「删除歌单」从编辑弹窗的 footer 挪到歌单页 `.playlist-button-list` 的行尾，成为与同行同款的药丸按钮（图标用图标字体的 `li-del`，与曲目列表「移出歌单」同一字形 + 文案），悬浮时图标与文字变红；弹窗只剩确认/取消，`.dialog-footer` 的三处样式随之清掉
+- 播放页的外语歌词翻译行：未唱到时字号 16 → 13px、与原句间距 41 → 12px；唱到时放大但**比原句小一档**（翻译 20px，原句 highlight 仍是 26px）
+- 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
+- 「显示专辑封面作为背景」开启时（`has-cover-bg` 类）：播放页面板底色往同色相的实底色掺到 ≈0.84 alpha（对下层更不透明），封面层 `.bg` 的模糊由 `blur(200px)` 减到 `120px`（contrast / brightness 不变）
+
+### Fixed
+
+- 全局静音期间切歌后，新建的音源会永久静音：Howler 把 `new Howl({mute})` 存成音源自己的 `_muted`，而全局 `mute(false)` 只把 `node.muted` 恢复成 `sound._muted`、play 时还把它 `||` 进去，于是调音量 / 取消静音 / 暂停播放都无效，只有重建 Howl 才恢复（升级前被固化的缓存 Howl 更是整会话静音）—— 音源级静音随上面的收敛消失，`onplay` 兜底同时覆盖 Howler HTML5 音频池复用节点时的 `node.muted` 粘滞
+- 静音状态下改音量要等下一次播放才生效（Howler 在 `_muted` 时只记住 `_volume`、不更新任何节点音量，而 `mute(false)` 从不重写 `node.volume`）；现由 `applyAudioState()` 的固定顺序保证，滑块 / 滚轮 / 快捷键三条入口一并即时生效
 
 ## [2.1.0] - 2026-10-06
 
@@ -21,7 +36,7 @@
 - 播放页（`.footer` 展开态）改为叠加层：`toggleNowPlaying()` 不再置 `is_window_hidden=0`、不再 `resetWindow()`，曲目列表的 `ng-show` 去掉 `window_type=='list'` 依赖 —— 下层视图保持挂载、滚动位置不丢；关闭走新增快捷路径（只回退视图 + 恢复 offset，不重取数据）；展开期间 `.browser` 用 `nowplaying-open` 锁住底层滚动（`overflow-y: hidden !important`，压过内联的 `scroll`）
 - 新增 `docs/CONVENTIONS.md` §10 分支与发版流程：`main` 原则上只经 `dev` 的 PR 更新、一 PR 一版本、合并提交标题为"日期 + 版本号"（`YYYY-MM-DD x.y.z`）
 - 顶栏与播放栏的底色透明度由 0.86 降到 0.75（`--nav-background-color`，两套 palette 同步）：两条浮条透一点，自定义壁纸下更明显；同一变量驱动的侧栏顶带卡片与播放列表抽屉一并变透
-- `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，只多 `--nav-height` 与下面那条死声明清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新
+- `.player-modern` 作用域前缀整体去除：`css/common2.css` 里 150 处播放区选择器回到直接以 `.footer` / `.songdetail-wrapper` / `.playsong-detail` / `.volume-ctrl` 为根（与合并布局前的上游原文一致，差异只剩 `--nav-height` 块、删掉的死声明与下面那条死规则清理），`listen1.html` 的包装 class 与相关纪律、约定一并更新
 - 清理遗留：`profile.js` 不再往 `<html>` 写已无消费者的 `data-theme`，`common2.css` 删掉两套 palette 都没定义的死声明 `color: var(--color-text)`，`listen1.html` 去掉不再被引用的 `#common-css` id，i18n 的 `_THEME_MODERN_WHITE` / `_THEME_MODERN_BLACK` 更名 `_THEME_WHITE` / `_THEME_BLACK` 并去掉文案里的"现代"字样
 - 右侧滚动区顶部留白加 5px（`.page` 的 `padding-top` 改为 `calc(var(--nav-height) + 5px)`），内容不再贴着顶栏下缘
 - 版本号约定明确为语义化版本（SemVer）：`MAJOR` 不兼容改动、`MINOR` 向后兼容地新增、`PATCH` 向后兼容地修复；扩展清单只接受纯数字，因此只用三段 `x.y.z`

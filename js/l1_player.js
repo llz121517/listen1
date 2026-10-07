@@ -5,9 +5,8 @@
 
   const myPlayer = getPlayer(mode);
   const l1Player = {
+    // 音频状态不在这里存快照：加载瞬间的值会过期，一律问播放器（l1Player.getAudioState()）
     status: {
-      muted: myPlayer.muted,
-      volume: myPlayer.volume * 100,
       loop_mode: myPlayer.loop_mode,
       playing: myPlayer.playing,
     },
@@ -66,26 +65,28 @@
         player.loop_mode = input;
       });
     },
-    mute() {
+    // 音频状态的读写都经这里；getAudioState() 是同步读，供初始化取一次快照
+    getAudioState() {
+      const player = getPlayer(mode);
+      // background 模式下后台页可能还没就绪，getPlayer 会返回 undefined
+      if (!player) {
+        return { volume: 100, muted: false };
+      }
+      return player.getAudioState();
+    },
+    setVolume(pct) {
       getPlayerAsync(mode, (player) => {
-        player.mute();
+        player.setVolume(pct);
       });
     },
-    unmute() {
+    setMuted(muted) {
       getPlayerAsync(mode, (player) => {
-        player.unmute();
+        player.setMuted(muted);
       });
     },
-    toggleMute() {
+    toggleMuted() {
       getPlayerAsync(mode, (player) => {
-        if (player.muted) player.unmute();
-        else player.mute();
-      });
-    },
-    setVolume(per) {
-      getPlayerAsync(mode, (player) => {
-        // eslint-disable-next-line no-param-reassign
-        player.volume = per / 100;
+        player.toggleMuted();
       });
     },
     adjustVolume(increase) {

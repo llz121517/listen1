@@ -1,6 +1,6 @@
 {
   "_comment": "「关于」页展示信息。fork 改信息只动这个文件，无需改 listen1.html。version 仅供展示，manifest.json / manifest_firefox.json / package.json 才是权威版本号。",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "homepage": "https://listen1.github.io/listen1/",
   "email": "githublisten1@gmail.com",
   "feedback": {

@@ -435,8 +435,8 @@ const main = () => {
           $rootScope.$broadcast('dragbar:myprogress', progress * 100);
         }
         if (mode === 'volume') {
+          // setVolume 自带「调音量即取消静音」语义，这里不必再单独调 unmute
           l1Player.setVolume(progress * 100);
-          l1Player.unmute();
         }
       }
 
@@ -444,11 +444,7 @@ const main = () => {
         if (mode === 'play') {
           l1Player.seek(progress);
         }
-        if (mode === 'volume') {
-          const current = localStorage.getObject('player-settings');
-          current.volume = progress * 100;
-          localStorage.setObject('player-settings', current);
-        }
+        // 音量不在这里落盘：持久化统一由 play.js 的 BG_PLAYER:AUDIO_STATE 订阅处理
       }
 
       function commitProgress(progress) {

@@ -77,19 +77,6 @@ html[data-custom-background='1'] body .body {
   );
 }
 
-html[data-custom-background='1']
-  .page
-  .login
-  .login-form
-  .login-form_field
-  input {
-  background-color: transparent;
-  background-image: linear-gradient(
-    var(--custom-bg-panel-tint),
-    var(--custom-bg-panel-tint)
-  );
-}
-
 /* --------------------------------------------------------------------------
    3. 顶部留白
       顶栏（.navigation）是流外、贴顶的，所以内容流从容器顶部开始、会被顶栏压住一个
@@ -160,8 +147,57 @@ html .main .content .navigation {
       否则滚轮落在没被面板盖住的边角（1vw / 1vh 的余量、侧栏）上仍会推动下面那层列表。
       .browser 的 overflow-y 是内联的 `scroll`（listen1.html），普通规则压不住，只能
       !important；类由 ng-class="{'nowplaying-open': window_type=='track'}" 加。
-      规则放本表而不是 common2.css：common2.css 保持与合并布局前的上游原文一致，
-      fork 追加的外壳补丁都收在这张最后加载的表里。 */
+      规则放本表而不是 common2.css：common2.css 只保留必要的最小改动（前缀去除、
+      死声明与死规则清理），fork 追加的外壳补丁都收在这张最后加载的表里。 */
 .main .content .browser.nowplaying-open {
   overflow-y: hidden !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. 「显示专辑封面作为背景」开启时的两处调整
+      类由 listen1.html 的 ng-class 加在 .footer-main 上（'has-cover-bg'）。
+      刻意不复用 common2.css 里那个 .coverbg：那三条 .coverbg .playsong-detail …
+      是经典分支留下的死规则（全仓库没有地方加这个类），复用会把它们意外唤醒。
+      ① 播放页对下层更不透明：面板底色还是同一个色（--nav-background-color），
+         只是用 color-mix 把它往同色相的实底色（--content-background-color）里掺
+         到 ≈0.84 alpha —— 两套 palette 里这两个颜色的 RGB 本来就一致（浅色都是白、
+         深色都是 #222），所以不会串色，只是变实。不支持 color-mix 的浏览器会丢弃
+         这条声明，退回 .footer-main 原本的 0.75（优雅降级）。
+      ② 封面模糊减弱：.bg 原本 blur(200px)（common2.css），这里减到 120px，
+         contrast / brightness 维持原样。 */
+.footer .footer-main.slidedown.has-cover-bg {
+  background-color: color-mix(
+    in srgb,
+    var(--nav-background-color) 65%,
+    var(--content-background-color)
+  );
+}
+
+.footer .footer-main.has-cover-bg .bg {
+  filter: blur(120px) contrast(75%) brightness(150%);
+}
+
+/* --------------------------------------------------------------------------
+   9. 播放页的外语歌词翻译行
+      .translate 是 parseLyric 把翻译按时间戳插到原句后面生成的独立 <p>（js/controller/play.js）。
+      common2.css 里它继承 .lyric 的 16px，并与原句隔 41px（原句 padding-bottom 18 +
+      翻译 margin-top 5 + 翻译 padding-top 18）。这里分两件事写：
+        · 间距：两种状态都贴近 —— margin-top 转负抵消原句下内边距的一部分、padding-top 18 → 6，
+          41 → 12px；
+        · 字号：没唱到时 13px；唱到时翻译行同样会拿到 highlight（ng-class 里的
+          line.lineNumber == lyricLineNumberTrans），这里给它 20px —— 比原句 highlight 的
+          26px **小一档**，而不是跟着原句一起变 26px。
+      选择器带 .footer 前缀是为了压过 common2.css 里同样以 .lyric p 为根的规则，
+      包括 .lyric p.highlight 的 26px。 */
+.footer .playsong-detail .detail-songinfo .lyric p.translate {
+  margin: -12px 0 0 0;
+  padding-top: 6px;
+}
+
+.footer .playsong-detail .detail-songinfo .lyric p.translate:not(.highlight) {
+  font-size: 13px;
+}
+
+.footer .playsong-detail .detail-songinfo .lyric p.translate.highlight {
+  font-size: 20px;
 }
