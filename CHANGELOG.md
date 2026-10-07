@@ -21,6 +21,10 @@
 - 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
 - 「显示专辑封面作为背景」开启时（`has-cover-bg` 类）：播放页面板底色往同色相的实底色掺到 ≈0.84 alpha（对下层更不透明），封面层 `.bg` 的模糊由 `blur(200px)` 减到 `120px`（contrast / brightness 不变）
 
+### Fixed
+
+- 静音状态下改音量要等下一次播放才生效（Howler 在 `_muted` 时只记住 `_volume`、不更新任何节点音量，而 `mute(false)` 从不重写 `node.volume`，原先"先设音量、再解静音"的顺序就把新音量挡在门外）；`player_thread.js` 的 `set volume` 改为先解静音再设音量，滑块 / 滚轮 / 快捷键三条入口一并即时生效
+
 ## [2.1.0] - 2026-10-06
 
 ### Changed

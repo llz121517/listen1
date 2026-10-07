@@ -464,6 +464,14 @@
     set volume(val) {
       // Update the global volume (affecting all Howls).
       if (typeof val === 'number') {
+        // Howler 静音时只记住 _volume、不更新任何节点（howler.core.min.js 的 volume() 里
+        // `if (self._muted) return self;`），而 mute(false) 只恢复 node.muted、从不重写
+        // node.volume —— 于是静音状态下调音量要等下一次 play 才生效。先解静音再设，
+        // 走本类的 unmute() 顺带把静音状态广播给 UI。所有改音量的入口（滑块 / 滚轮 /
+        // 快捷键）都经这里，所以修在这一层。
+        if (this.muted) {
+          this.unmute();
+        }
         Howler.volume(val);
         this.sendVolumeEvent();
         this.sendFrameUpdate();
