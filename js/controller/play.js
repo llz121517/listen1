@@ -51,8 +51,10 @@ angular.module('listenone').controller('PlayController', [
   '$rootScope',
   ($scope, $timeout, $log, $anchorScroll, $location, $rootScope) => {
     $scope.menuHidden = true;
-    $scope.volume = l1Player.status.volume;
-    $scope.mute = l1Player.status.muted;
+    // 音频状态唯一来源是播放器：这里只读一次快照，之后只由 BG_PLAYER:AUDIO_STATE 订阅更新
+    const initialAudioState = l1Player.getAudioState();
+    $scope.volume = initialAudioState.volume;
+    $scope.mute = initialAudioState.muted;
     $scope.settings = {
       playmode: 0,
       nowplaying_track_id: -1,
@@ -131,12 +133,14 @@ angular.module('listenone').controller('PlayController', [
       // apply settings
       switchMode($scope.settings.playmode);
 
-      $scope.volume = $scope.settings.volume;
-      if ($scope.volume === null) {
-        $scope.volume = 90;
+      const savedVolume = $scope.settings.volume;
+      if (savedVolume === null || savedVolume === undefined) {
+        $scope.settings.volume = 90;
         $scope.saveLocalSettings();
+        l1Player.setVolume(90);
       } else {
-        l1Player.setVolume($scope.volume);
+        // 只交给播放器；$scope.volume / $scope.mute 统一由 AUDIO_STATE 订阅回写
+        l1Player.setVolume(savedVolume);
       }
       $scope.enableGlobalShortCut = localStorage.getObject(
         'enable_global_shortcut'
@@ -344,7 +348,7 @@ angular.module('listenone').controller('PlayController', [
 
     $scope.toggleMuteStatus = () => {
       // mute function is indeed toggle mute status.
-      l1Player.toggleMute();
+      l1Player.toggleMuted();
     };
 
     $scope.myProgress = 0;
@@ -500,10 +504,24 @@ angular.module('listenone').controller('PlayController', [
             break;
           }
 
-          case 'VOLUME': {
+          case 'AUDIO_STATE': {
+            // 音频状态的唯一常驻写入点：UI 不再自己算音量/静音，只镜像播放器广播的状态
+            const audioState = msg.data || {};
+            $scope.settings.volume = audioState.volume;
             $scope.$evalAsync(() => {
-              $scope.volume = msg.data;
+              $scope.volume = audioState.volume;
+              $scope.mute = audioState.muted;
             });
+            // 持久化只写 volume 键：整对象回写会用 $scope.settings 里的旧值覆盖 LOAD
+            // 分支直写的 nowplaying_track_id。拖动时状态按帧到达，防抖后再落盘。
+            if ($scope.saveVolumeTimeout) {
+              $timeout.cancel($scope.saveVolumeTimeout);
+            }
+            $scope.saveVolumeTimeout = $timeout(() => {
+              const saved = localStorage.getObject('player-settings') || {};
+              saved.volume = audioState.volume;
+              localStorage.setObject('player-settings', saved);
+            }, 400);
             break;
           }
 
@@ -661,14 +679,6 @@ angular.module('listenone').controller('PlayController', [
               ipcRenderer.send('currentLyric', track.title);
               ipcRenderer.send('trackPlayingNow', track);
             }
-            break;
-          }
-
-          case 'MUTE': {
-            // 'music:mute'
-            $scope.$evalAsync(() => {
-              $scope.mute = msg.data;
-            });
             break;
           }
 

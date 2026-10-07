@@ -17,6 +17,9 @@
       this.playedFrom = 0;
       this.mode = 'background';
       this.skipTime = 15;
+      // 音量 / 静音的权威状态：只有这两个字段说了算，Howler 只是 applyAudioState() 写下去的目标
+      this._volume = 1;
+      this._muted = false;
     }
 
     setMode(newMode) {
@@ -44,9 +47,32 @@
       return this.currentHowl ? this.currentHowl.playing() : false;
     }
 
-    // eslint-disable-next-line class-methods-use-this
     get muted() {
-      return !!Howler._muted;
+      return this._muted;
+    }
+
+    get volume() {
+      return this._volume;
+    }
+
+    /**
+     * 对外口径的音频状态：音量为百分数（UI 与 localStorage 都按百分数用），静音为布尔。
+     */
+    getAudioState() {
+      return {
+        volume: Math.round(this._volume * 100),
+        muted: this._muted,
+      };
+    }
+
+    /**
+     * 唯一写 mute / volume 到 Howler 的地方。
+     * 顺序不能反：Howler 的 volume() 在全局 _muted 为真时直接 return、不更新任何节点，
+     * 而全局 _muted 只在 Howler.mute() 里被改写。
+     */
+    applyAudioState() {
+      Howler.mute(this._muted);
+      Howler.volume(this._volume);
     }
 
     insertAudio(audio, idx) {
@@ -274,9 +300,16 @@
           src: [self._media_uri_list[data.url || data.id]],
           format: 'mp3', // bypass Howl checking url extension, issue #1200
           volume: 1,
-          mute: self.muted,
+          // 这里**不要**传 mute：Howler 会把该选项存成"这个音源自己的 _muted"，而全局
+          // mute(false) 只把 node.muted 恢复成 sound._muted、永不重写 node.volume，于是
+          // 全局静音期间新建的音源会被永久静音（只有重建 Howl 才恢复）。全局静音由
+          // applyAudioState() 经 Howler.mute() 统一施加。
           html5: true, // Force to HTML5 so that the audio can stream in (best for large files).
           onplay() {
+            // 兜底：Howler 的 HTML5 音频池释放节点时不重置 muted，play 分支又会把旧的
+            // node.muted 一起 OR 进去；这里（playHtml5 写完 muted/volume 之后）重放一次
+            // 权威状态，把节点的 muted 与 volume 纠正过来。
+            self.applyAudioState();
             if ('mediaSession' in navigator) {
               const { mediaSession } = navigator;
               mediaSession.playbackState = 'playing';
@@ -458,53 +491,35 @@
     }
 
     /**
-     * Set the volume and update the volume slider display.
-     * @param  {Number} val Volume between 0 and 1.
+     * 设音量。语义：调音量即取消静音（滑块 / 滚轮 / 快捷键同一条规则）。
+     * @param  {Number} pct 0..100；非有限数值直接忽略
      */
-    set volume(val) {
-      // Update the global volume (affecting all Howls).
-      if (typeof val === 'number') {
-        // Howler 静音时只记住 _volume、不更新任何节点（howler.core.min.js 的 volume() 里
-        // `if (self._muted) return self;`），而 mute(false) 只恢复 node.muted、从不重写
-        // node.volume —— 于是静音状态下调音量要等下一次 play 才生效。先解静音再设，
-        // 走本类的 unmute() 顺带把静音状态广播给 UI。所有改音量的入口（滑块 / 滚轮 /
-        // 快捷键）都经这里，所以修在这一层。
-        if (this.muted) {
-          this.unmute();
-        }
-        Howler.volume(val);
-        this.sendVolumeEvent();
-        this.sendFrameUpdate();
+    setVolume(pct) {
+      if (typeof pct !== 'number' || !Number.isFinite(pct)) {
+        return;
       }
+      this._volume = Math.min(Math.max(pct, 0), 100) / 100;
+      this._muted = false;
+      this.applyAudioState();
+      this.sendAudioStateEvent();
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    get volume() {
-      return Howler.volume();
+    /**
+     * 按一档调音量。
+     * @param  {Boolean} increase true = 增大一档（沿用既有布尔语义：滚轮与快捷键都传布尔值）
+     */
+    adjustVolume(increase) {
+      this.setVolume(this.getAudioState().volume + (increase ? 10 : -10));
     }
 
-    adjustVolume(inc) {
-      this.volume = inc
-        ? Math.min(this.volume + 0.1, 1)
-        : Math.max(this.volume - 0.1, 0);
-      this.sendVolumeEvent();
-      this.sendFrameUpdate();
+    setMuted(muted) {
+      this._muted = !!muted;
+      this.applyAudioState();
+      this.sendAudioStateEvent();
     }
 
-    mute() {
-      Howler.mute(true);
-      playerSendMessage(this.mode, {
-        type: 'BG_PLAYER:MUTE',
-        data: true,
-      });
-    }
-
-    unmute() {
-      Howler.mute(false);
-      playerSendMessage(this.mode, {
-        type: 'BG_PLAYER:MUTE',
-        data: false,
-      });
+    toggleMuted() {
+      this.setMuted(!this._muted);
     }
 
     /**
@@ -605,10 +620,10 @@
       });
     }
 
-    async sendVolumeEvent() {
+    async sendAudioStateEvent() {
       playerSendMessage(this.mode, {
-        type: 'BG_PLAYER:VOLUME',
-        data: this.volume * 100,
+        type: 'BG_PLAYER:AUDIO_STATE',
+        data: this.getAudioState(),
       });
     }
 

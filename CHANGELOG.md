@@ -16,6 +16,7 @@
 
 ### Changed
 
+- 静音 / 音量状态收敛到播放器：`Player` 持有权威 `_volume` / `_muted`，唯一写 Howler 的出口是 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`，因为 Howler 在全局静音时会短路 `volume()`）；`new Howl` 不再传 `mute`，改为在 `onplay` 里兜底重放一次状态；`BG_PLAYER:VOLUME` + `BG_PLAYER:MUTE` 合并为一条 `BG_PLAYER:AUDIO_STATE {volume, muted}`；门面收敛为 `setVolume` / `adjustVolume` / `setMuted` / `toggleMuted` / `getAudioState`（删掉 `mute` / `unmute` 与 `status.volume` / `status.muted`）；`$scope.volume` / `$scope.mute` 只由 `AUDIO_STATE` 订阅写，持久化只写 `player-settings` 的 `volume` 键（400ms 防抖，避免整对象回写覆盖 `nowplaying_track_id`）
 - 「删除歌单」从编辑弹窗的 footer 挪到歌单页 `.playlist-button-list` 的行尾，成为与同行同款的药丸按钮（图标用图标字体的 `li-del`，与曲目列表「移出歌单」同一字形 + 文案），悬浮时图标与文字变红；弹窗只剩确认/取消，`.dialog-footer` 的三处样式随之清掉
 - 播放页的外语歌词翻译行：未唱到时字号 16 → 13px、与原句间距 41 → 12px；唱到时放大但**比原句小一档**（翻译 20px，原句 highlight 仍是 26px）
 - 清掉两个样式表里 **16 条永远不会匹配的死规则**：`css/common2.css` 的 `.page .login .login-*`（12 条，登录页改版后留下的旧类名）与 `.coverbg …`（3 条，经典分支移除后没人再加这个类），以及 `css/custom-background.css` 里对应的登录输入框规则 —— 判定方式：选择器里只要有一个类/ID 令牌在 HTML + JS 里根本不存在
@@ -23,7 +24,8 @@
 
 ### Fixed
 
-- 静音状态下改音量要等下一次播放才生效（Howler 在 `_muted` 时只记住 `_volume`、不更新任何节点音量，而 `mute(false)` 从不重写 `node.volume`，原先"先设音量、再解静音"的顺序就把新音量挡在门外）；`player_thread.js` 的 `set volume` 改为先解静音再设音量，滑块 / 滚轮 / 快捷键三条入口一并即时生效
+- 全局静音期间切歌后，新建的音源会永久静音：Howler 把 `new Howl({mute})` 存成音源自己的 `_muted`，而全局 `mute(false)` 只把 `node.muted` 恢复成 `sound._muted`、play 时还把它 `||` 进去，于是调音量 / 取消静音 / 暂停播放都无效，只有重建 Howl 才恢复（升级前被固化的缓存 Howl 更是整会话静音）—— 音源级静音随上面的收敛消失，`onplay` 兜底同时覆盖 Howler HTML5 音频池复用节点时的 `node.muted` 粘滞
+- 静音状态下改音量要等下一次播放才生效（Howler 在 `_muted` 时只记住 `_volume`、不更新任何节点音量，而 `mute(false)` 从不重写 `node.volume`）；现由 `applyAudioState()` 的固定顺序保证，滑块 / 滚轮 / 快捷键三条入口一并即时生效
 
 ## [2.1.0] - 2026-10-06
 
