@@ -3,8 +3,8 @@
 本仓库是 [Listen 1](https://github.com/listen1/listen1_chrome_extension) 的 fork：**llz121517/listen1**。
 本文件记录本 fork 所有值得注意的改动，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。上游历史日志已原样归档：
 
-- 上游历史日志（中文）：[origin/CHANGELOG_UPSTREAM.md](origin/CHANGELOG_UPSTREAM.md)
-- 上游历史日志（英文）：[origin/CHANGELOG_UPSTREAM_EN.md](origin/CHANGELOG_UPSTREAM_EN.md)
+- 上游历史日志（中文）：[docs/origin/CHANGELOG_UPSTREAM.md](docs/origin/CHANGELOG_UPSTREAM.md)
+- 上游历史日志（英文）：[docs/origin/CHANGELOG_UPSTREAM_EN.md](docs/origin/CHANGELOG_UPSTREAM_EN.md)
 
 ## 版本号约定
 
@@ -23,6 +23,7 @@
 - 播放页外语歌词翻译行：未唱到 13px、与原句间距 12px，唱到时 20px
 - 「显示专辑封面作为背景」开启时播放页面板更实、封面模糊减弱（`blur(200px)` → `120px`）
 - 清掉两个样式表里 16 条永远不会匹配的死规则（登录页旧类名与 `.coverbg` 残留）
+- 上游日志归档目录从仓库根的 `origin/` 移到 `docs/origin/`，文档引用同步
 
 ### Fixed
 

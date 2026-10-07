@@ -2,7 +2,7 @@
 
 适用范围：本 fork（`llz121517/listen1`）的代码、注释与文档。**改代码或文档前先读这一页**；与本文冲突的写法以本文为准。
 
-关联文档：[`docs/INDEX.md`](INDEX.md)（现状索引）、[`CHANGELOG.md`](../CHANGELOG.md)（更新日志）、[`origin/`](../origin/)（上游历史日志归档）。
+关联文档：[`docs/INDEX.md`](INDEX.md)（现状索引）、[`CHANGELOG.md`](../CHANGELOG.md)（更新日志）、[`docs/origin/`](origin/)（上游历史日志归档）。
 
 ---
 
@@ -30,7 +30,7 @@
 | `docs/INDEX.md` | 现状索引：结构、模块、主题、i18n、维护入口 |
 | `CHANGELOG.md` | 更新日志：Keep a Changelog，英文小节标题 + 中文正文；**新条目默认写进 `[Unreleased]`**，发版时整体移入新版本小节并留空 |
 | `docs/en/README.md` | 英文说明，与中文 `README.md` 互链 |
-| `origin/` | 上游历史日志归档（只读，不再维护） |
+| `docs/origin/` | 上游历史日志归档（只读，不再维护） |
 
 ## 3. CHANGELOG 纪律（默认动作，不必等人叮嘱）
 

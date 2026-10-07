@@ -5,4 +5,4 @@
 - `CHANGELOG_UPSTREAM.md` —— 上游更新日志（中文）
 - `CHANGELOG_UPSTREAM_EN.md` —— 上游更新日志（英文）
 
-本 fork 自己的更新日志在仓库根的 [`CHANGELOG.md`](../CHANGELOG.md)。
+本 fork 自己的更新日志在仓库根的 [`CHANGELOG.md`](../../CHANGELOG.md)。

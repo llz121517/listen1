@@ -53,7 +53,7 @@ Making your own playlist is also supported.
 > This fork uses semantic versioning (SemVer, `MAJOR.MINOR.PATCH`) and is currently at `2.2.0`; it versions independently of upstream (last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
 
 - This fork's changelog: [CHANGELOG.md](../../CHANGELOG.md)
-- Upstream changelog (archived, verbatim): [origin/CHANGELOG_UPSTREAM_EN.md](../../origin/CHANGELOG_UPSTREAM_EN.md)
+- Upstream changelog (archived, verbatim): [docs/origin/CHANGELOG_UPSTREAM_EN.md](../origin/CHANGELOG_UPSTREAM_EN.md)
 
 ## License
 
