@@ -264,7 +264,7 @@ Howler 播放中
 
 | 文件 | 行数 | 职责 | 关键符号 |
 | --- | --- | --- | --- |
-| `js/player_thread.js` | 688 | 音频引擎：播放列表状态机 + Howler 封装 + 事件发射。音量/静音的权威状态 `_volume`/`_muted` 与**唯一**写 Howler 的出口 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`）都在这里 | `class Player`；`setRefreshRate`(10Hz)；`applyAudioState`；`getAudioState`；`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；`retrieveMediaUrl`；`finishLoad`（`new Howl` 不传 `mute`，`onplay` 里兜底 `applyAudioState()`）；`skip`(含随机表)；`seek`/`seekTime`；发射器 `sendFrameUpdate`/`sendPlayingEvent`/`sendLoadEvent`/`sendAudioStateEvent`/`sendPlaylistEvent`；mediaSession 动作；`window.threadPlayer` 单例 |
+| `js/player_thread.js` | 688 | 音频引擎：播放列表状态机 + Howler 封装 + 事件发射。音量/静音的权威状态 `_volume`/`_muted` 与**唯一**写 Howler 的出口 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`）都在这里 | `class Player`；`setRefreshRate`(10Hz)；`applyAudioState`；`getAudioState`；`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；`retrieveMediaUrl`；`finishLoad`（`new Howl` 不传 `mute`，`onplay` 里兜底 `applyAudioState()`）；播放列表变更 `insertAudio`/`insertAudioByDirection`/`removeAudio`/`clearPlaylist`/`setNewPlaylist`；`skip`（三种模式的走位入口）；随机播放 `buildShuffleBag`（洗牌袋）/`startRandomRound`/`randomRoundLength`/`resetRandomPlaylist`（歌单与模式变更时作废）；`seek`/`seekTime`；发射器 `sendFrameUpdate`/`sendPlayingEvent`/`sendLoadEvent`/`sendAudioStateEvent`/`sendPlaylistEvent`；mediaSession 动作；`window.threadPlayer` 单例 |
 | `js/loweb.js` | 444 | Provider 注册表 + 服务门面（别名 `loWeb`） | `PROVIDERS:4-78`、`getProviderByName:80`、`getAllSearchProviders:88`、`getProviderByItemId:97`、`playlistCache:103`、`MediaService:116`、`search:122`、`getPlaylist:193`、`getLyric:171`、`bootstrapTrack:338`、`parseURL:302`、`mergePlaylist:325`、`clonePlaylist:217`、`loWeb = MediaService:444` |
 | `js/github.js` | 187 | GitHub OAuth + Gist 备份/恢复 | `window.GithubClient:26`；`.github`: `handleCallback:28`、`openAuthUrl:49`、`getStatusText:68`、`updateStatus:80`、`logout:97`；`.gist`: `json2gist:104`、`gist2json:138`、`listExistBackup:150`、`backupMySettings2Gist:159`、`importMySettingsFromGist:180`；axios 拦截器注入 token `:14-19` |
 | `js/lastfm.js` | 249 | Last.fm 授权 + now playing + scrobble | `window.lastfm:248`；`generateSign:31`(forge MD5)、`getAuth:141`、`getSession:57`、`sendNowPlaying:169`、`scrobble:195`、`isAuthorized:226` |
@@ -586,7 +586,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 发版 / 合并到 `main` | 先合到 `dev`，再开 PR 进 `main`；一 PR 一版本，合并提交标题 `YYYY-MM-DD x.y.z`（见 [CONVENTIONS.md](CONVENTIONS.md) §10） |
 | 加一个音乐平台 | 新建 `js/provider/<name>.js` → 在 `listen1.html` 的 provider `<script>` 区（`js/provider/xiami.js` 那一组，须早于 `loweb.js`）加一行 → `loweb.js:4-78` 注册（含 2 位 id 前缀）→ `app.js:10-39` 的 `sourceList` 加 tab → `i18n/*.json` 加 `_XXX_MUSIC` → 清单补 `host_permissions` → 必要时补 `rules_1.json` |
 | 修某平台搜不到/播不了 | 对应 `js/provider/*.js`（搜索 → `search`，播放地址 → `bootstrap_track`，歌词 → `lyric`），必要时看 `rules_1.json` 是否为防盗链问题 |
-| 改播放逻辑（切歌/循环/随机） | `js/player_thread.js`（`skip:381`、loop `:438-454`）；UI 侧 `l1_player.js` |
+| 改播放逻辑（切歌/循环/随机） | `js/player_thread.js`（`skip`、`loop_mode` setter、随机播放的 `startRandomRound`/`buildShuffleBag`/`randomRoundLength`）；UI 侧 `l1_player.js` |
 | 改进度条 / 歌词滚动 / 正在播放页 | `js/controller/play.js`（`parseLyric`、`BG_PLAYER:*` 消息分发，含 `AUDIO_STATE` 订阅）+ `listen1.html` 的播放区（`[现代播放区]` 标记那一段，`class="footer"`） |
 | 改快捷键 | 绑定：`play.js:786-815`、`navigation.js:605`；**同时**改展示表（设置页的 `.shortcut_table`） |
 | 加/改界面元素 | `listen1.html` —— 只有一套布局（§7.2）；外壳样式在 `css/common2.css`（本 fork 另加 `css/custom-background.css`），播放区在 `[现代播放区]` 标记那一段（`class="footer"`） |
