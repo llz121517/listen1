@@ -73,6 +73,16 @@
     applyAudioState() {
       Howler.mute(this._muted);
       Howler.volume(this._volume);
+      // 上面两条只遍历 Howler._howls；而 skip() 开头的 Howler.unload() 会把播过的 Howl 从
+      // _howls 摘掉，finishLoad 又复用同一个 Howl 对象（随机模式复播必走这条），于是它对
+      // 当前这个 Howl 无效。这里补一次：Howl 自己的 mute()/volume() 直接写 node
+      // （node.muted / node.volume = groupVolume * Howler.volume()）。
+      const { currentHowl } = this;
+      if (currentHowl) {
+        const groupVolume = currentHowl.volume(); // 应用里恒为 1（new Howl({ volume: 1 })）
+        currentHowl.mute(this._muted);
+        currentHowl.volume(groupVolume);
+      }
     }
 
     insertAudio(audio, idx) {

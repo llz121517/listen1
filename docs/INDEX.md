@@ -6,7 +6,7 @@
 | 项 | 值 |
 | --- | --- |
 | 项目 | Listen 1（Chrome / Firefox 扩展，同时作为 Listen1 桌面版渲染层） |
-| 版本 | `2.2.0`（语义化版本 SemVer；权威值在 `package.json`/`package-lock.json`/`manifest*.json`，界面展示值来自 `config/about.json`） |
+| 版本 | `2.2.1`（语义化版本 SemVer；权威值在 `package.json`/`package-lock.json`/`manifest*.json`，界面展示值来自 `config/about.json`） |
 | 一句话 | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble |
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
@@ -15,8 +15,8 @@
 | License | MIT（`LICENSE`） |
 
 > **fork 与版本方案**：本仓库是 [llz121517/listen1](https://github.com/llz121517/listen1)，fork 自 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)。
-> 版本号为 `2.2.0`（语义化版本 SemVer，本 fork 独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系）；上游更新日志已归档到 [`origin/`](../origin/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
-> 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此全仓库统一写 `2.2.0`（不再使用 `version_name`）；界面展示值来自 `config/about.json`。
+> 版本号为 `2.2.1`（语义化版本 SemVer，本 fork 独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系）；上游更新日志已归档到 [`docs/origin/`](origin/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
+> 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此全仓库统一写 `2.2.1`（不再使用 `version_name`）；界面展示值来自 `config/about.json`。
 
 ---
 
@@ -72,7 +72,7 @@ listen1/
 ├── manifest.json                        Manifest V3：Chrome/Edge
 ├── manifest_firefox.json                Manifest V2：Firefox
 ├── rules_1.json                         声明式网络请求规则（改 Referer/UA 绕过防盗链，见 §9）
-├── package.json                         仅 devDependencies（eslint/prettier/husky），version 2.2.0
+├── package.json                         仅 devDependencies（eslint/prettier/husky），version 2.2.1
 ├── .eslintrc.json .prettierrc .gitignore
 ├── .github/workflows/eslint.yml         CI：push/PR 到 main 跑 npx eslint .
 ├── README.md                            中文说明（英文版见 docs/en/README.md）
@@ -115,8 +115,8 @@ listen1/
 ├── i18n/                       7 语言 × 179 键，扁平结构
 ├── fonts/                      listen1-icon 图标字体 4 种格式
 ├── config/                     about.json（「关于」页信息）、languages.json（语言清单）
-├── docs/                       本仓库文档：INDEX.md（总索引）、en/README.md（英文说明）
-├── origin/                     上游历史产物归档（CHANGELOG_UPSTREAM.md / _EN.md，原文未改）
+├── docs/                       本仓库文档：INDEX.md（总索引）、en/README.md（英文说明）、
+│   └── origin/                 上游历史产物归档（CHANGELOG_UPSTREAM.md / _EN.md，原文未改）
 └── images/                     logo、图标雪碧图、加载动画、默认封面等
 ```
 
@@ -608,8 +608,8 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | [README.md](../README.md) | 中文说明、安装方式、更新日志入口 |
 | [docs/en/README.md](en/README.md) | 英文版说明 |
 | [CHANGELOG.md](../CHANGELOG.md) | **本 fork** 的更新日志（自 `1.0.0` 起）与版本号约定 |
-| [origin/CHANGELOG_UPSTREAM.md](../origin/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
-| [origin/CHANGELOG_UPSTREAM_EN.md](../origin/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |
+| [docs/origin/CHANGELOG_UPSTREAM.md](origin/CHANGELOG_UPSTREAM.md) | 上游更新日志归档（中文，原文未改） |
+| [docs/origin/CHANGELOG_UPSTREAM_EN.md](origin/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改） |
 | [LICENSE](../LICENSE) | MIT |
 | [.github/workflows/eslint.yml](../.github/workflows/eslint.yml) | CI 定义 |
 | 本 fork 仓库 | https://github.com/llz121517/listen1 |
