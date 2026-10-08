@@ -85,7 +85,7 @@ listen1/
 │   ├── player_thread.js          665    音频引擎（Howler 封装、播放列表、进度事件）
 │   ├── l1_player.js              238    播放器门面 window.l1Player（UI 唯一调用入口）
 │   ├── loweb.js                  444    服务层 MediaService：Provider 注册表 + 播放地址解析 + 自动切源
-│   ├── lowebutil.js              115    通用工具（cookie、localStorage 扩展、isElectron…）
+│   ├── lowebutil.js              137    通用工具（cookie、localStorage 扩展、isElectron、歌单内搜索匹配…）
 │   ├── myplaylist.js             262    本地歌单存储（localStorage 实现）
 │   ├── github.js                 187    GitHub Gist 备份/恢复 + OAuth
 │   ├── lastfm.js                 249    Last.fm 授权与 scrobble
@@ -255,7 +255,7 @@ Howler 播放中
 
 | 文件 | 行数 | 职责 | 关键符号 |
 | --- | --- | --- | --- |
-| `js/lowebutil.js` | 115 | 无依赖工具集 | `isElectron():16`、`cookieGet/Set/Remove:20/38/49`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage():63`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue:79`、`getParameterByName:5`、`smoothScrollTo:99`(歌词滚动) |
+| `js/lowebutil.js` | 137 | 无依赖工具集 | `isElectron`、`cookieGet`/`cookieSet`/`cookieRemove`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue`、`getParameterByName`、`smoothScrollTo`(歌词滚动)、`matchPlaylistFilter`(歌单内搜索：大小写不敏感 + 空白分词 AND) |
 | `js/bridge.js` | 135 | UI↔播放器消息桥，定义 front/background 双协议 | `hasBackgroundPlayer`（MV2 专有 API 的收敛点）、`getPlayerMode`（模式唯一推导处）、`getPlayer/getPlayerAsync`、`addPlayerListener`、`playerSendMessage` |
 | `js/l1_player.js` | 236 | 播放器门面，UI 唯一入口；`status` 只留播放列表/循环模式/播放态（音频状态不存快照，问 `getAudioState()`） | `window.l1Player`；音频状态 `getAudioState`（同步读，background 下判空回退）/`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；其余 `play/pause/togglePlayPause/playById/loadById/seek/next/prev/random/setLoopMode/addTrack/insertTrack/removeTrack/addTracks/clearPlaylist/setNewPlaylist`；`connectPlayer`（恢复上次播放）；`injectDirectives`（6 个播放指令） |
 | `js/myplaylist.js` | 262 | 本地歌单 CRUD，纯 localStorage 实现，单例 | `myplaylistFactory():262`；`show_myplaylist:25`、`get_playlist:52`、`create_myplaylist:205`、`add_track_to_myplaylist:148`、`insert_myplaylist_to_myplaylists:78`；键名映射 `getPlaylistObjectKey:16-24` |
@@ -587,6 +587,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 加一个音乐平台 | 新建 `js/provider/<name>.js` → 在 `listen1.html` 的 provider `<script>` 区（`js/provider/xiami.js` 那一组，须早于 `loweb.js`）加一行 → `loweb.js:4-78` 注册（含 2 位 id 前缀）→ `app.js:10-39` 的 `sourceList` 加 tab → `i18n/*.json` 加 `_XXX_MUSIC` → 清单补 `host_permissions` → 必要时补 `rules_1.json` |
 | 修某平台搜不到/播不了 | 对应 `js/provider/*.js`（搜索 → `search`，播放地址 → `bootstrap_track`，歌词 → `lyric`），必要时看 `rules_1.json` 是否为防盗链问题 |
 | 改播放逻辑（切歌/循环/随机） | `js/player_thread.js`（`skip`、`loop_mode` setter、随机播放的 `startRandomRound`/`buildShuffleBag`/`randomRoundLength`）；UI 侧 `l1_player.js` |
+| 改歌单内搜索的匹配规则 | `js/lowebutil.js` 的 `matchPlaylistFilter`；输入框、清除按钮与过滤管道在 `listen1.html` 的 `#playlist-search-input` 那一段（`filter: fieldFilter`），控制器侧是 `navigation.js` 的 `playlistFilter` |
 | 改进度条 / 歌词滚动 / 正在播放页 | `js/controller/play.js`（`parseLyric`、`BG_PLAYER:*` 消息分发，含 `AUDIO_STATE` 订阅）+ `listen1.html` 的播放区（`[现代播放区]` 标记那一段，`class="footer"`） |
 | 改快捷键 | 绑定：`play.js:786-815`、`navigation.js:605`；**同时**改展示表（设置页的 `.shortcut_table`） |
 | 加/改界面元素 | `listen1.html` —— 只有一套布局（§7.2）；外壳样式在 `css/common2.css`（本 fork 另加 `css/custom-background.css`），播放区在 `[现代播放区]` 标记那一段（`class="footer"`） |

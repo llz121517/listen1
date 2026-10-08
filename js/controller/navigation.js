@@ -3,7 +3,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-param-reassign */
-/* global angular notyf i18next MediaService l1Player hotkeys isElectron require GithubClient lastfm */
+/* global angular notyf i18next MediaService l1Player hotkeys isElectron require GithubClient lastfm matchPlaylistFilter */
 // control main view of page, it can be called any place
 angular.module('listenone').controller('NavigationController', [
   '$scope',
@@ -333,16 +333,8 @@ angular.module('listenone').controller('NavigationController', [
     $scope.clearFilter = () => {
       $scope.playlistFilter.key = '';
     };
-    $scope.fieldFilter = (song) => {
-      if ($scope.playlistFilter.key === '') {
-        return true;
-      }
-      return (
-        song.title.includes($scope.playlistFilter.key) ||
-        song.artist.includes($scope.playlistFilter.key) ||
-        (song.album && song.album.includes($scope.playlistFilter.key))
-      );
-    };
+    $scope.fieldFilter = (song) =>
+      matchPlaylistFilter(song, $scope.playlistFilter.key);
     $scope.onPlaylistSongDrop = (list_id, song, data, dataType, direction) => {
       if (dataType === 'application/listen1-song') {
         // insert song

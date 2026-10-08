@@ -1104,6 +1104,7 @@ ul.detail-songlist .playlist-search .playlist-clear-icon {
 }
 ul.detail-songlist .playlist-search .playlist-search-input {
   width: 174px;
+  padding-right: 26px;
   background-color: transparent;
   border-style: none;
   font-size: 16px;
