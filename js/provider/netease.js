@@ -189,6 +189,9 @@ class netease {
                 value: nuidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                // SameSite=None 必须 Secure，否则 Chrome 拒绝写入
+                // （报 "Failed to parse or set cookie"，cookie 落不了盘）
+                secure: true,
               },
               {
                 url: domain,
@@ -196,6 +199,7 @@ class netease {
                 value: nnidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                secure: true,
               },
               {
                 url: domain,
@@ -203,6 +207,7 @@ class netease {
                 value: nmtidValue,
                 expirationDate: expire,
                 sameSite: 'no_restriction',
+                secure: true,
               },
             ],
             cookieSet,

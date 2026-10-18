@@ -11,6 +11,12 @@
 本仓库自 2026-10-17 起不再使用版本号机制：插件各处 `version` 字段固定 `1.0.0`，变更以**日期小节**记录（`## YYYY-MM-DD`，新的在上），构建之间的差异由**提交哈希**区分。
 历史版本小节（`[x.y.z] - 日期`）按当时的机制原样保留。`dev` → `main` 的 PR 工作流照旧，合并提交标题只写日期（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7/§10）。
 
+## 2026-10-18
+
+### Fixed
+
+- 网易云预置 cookie（`_ntes_nuid` / `_ntes_nnid3` / `NMTID`）从未写入成功：`SameSite=None` 缺 `secure: true`，被 Chrome 80+ 拒收并刷 "Failed to parse or set cookie" 报错
+
 ## 2026-10-17
 
 ### Added
