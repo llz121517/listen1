@@ -115,6 +115,24 @@ function smoothScrollTo(element, to, duration) {
 }
 
 /**
+ * 歌词翻译开关的显示条件：解析后的歌词里至少有一行“有内容”的翻译行。
+ * 翻译行由 parseLyric() 打上 translationFlag；只有时间戳、内容为空的翻译行不算。
+ * 传 null / 非数组时按“没有翻译”处理，不抛异常。
+ */
+function hasLyricTranslationLines(lyricArray) {
+  if (!Array.isArray(lyricArray)) {
+    return false;
+  }
+  return lyricArray.some(
+    (line) =>
+      line &&
+      line.translationFlag === true &&
+      typeof line.content === 'string' &&
+      line.content.trim() !== ''
+  );
+}
+
+/**
  * 歌单内搜索（#playlist-search-input）的匹配规则：按空白把查询词拆成多个关键词，
  * 大小写不敏感；每个关键词都要命中 title / artist / album 之一（关键词 AND、字段 OR）。
  * 空查询不过滤任何曲目；缺字段按不命中处理，不抛异常。
@@ -131,7 +149,8 @@ function matchPlaylistFilter(song, key) {
   return keywords.every((word) =>
     ['title', 'artist', 'album'].some(
       (field) =>
-        typeof song[field] === 'string' && song[field].toLowerCase().includes(word)
+        typeof song[field] === 'string' &&
+        song[field].toLowerCase().includes(word)
     )
   );
 }
