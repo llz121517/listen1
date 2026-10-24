@@ -1,7 +1,7 @@
 /**
  * 网易云 provider 的回归测试：
  *
- * 1. 预置 cookie 的路径约束。9105790 让三张预置 cookie 在根路径落盘后，上游原版会卡在
+ * 1. 预置 cookie 的路径约束。9105790 让预置 cookie 在根路径落盘后，上游原版会卡在
  *    「cookie 齐全 → ne_ensure_cookie 不回调」的死锁里（跨版本副作用）。所以预置 cookie
  *    只允许挂在 /api 下：我们的搜索请求 /api/search/pc 照常带上，上游按根路径
  *    `https://music.163.com` 查不到、仍走「缺失」分支。
@@ -27,7 +27,7 @@ const PLAYLIST_DETAIL_URL = 'https://music.163.com/weapi/v6/playlist/detail';
 const SONG_DETAIL_URL = 'https://music.163.com/weapi/v3/song/detail';
 const SEARCH_URL = 'https://music.163.com/api/search/pc';
 
-const PRESET_COOKIES = ['_ntes_nuid', '_ntes_nnid3', 'NMTID'];
+const PRESET_COOKIES = ['_ntes_nuid', 'NMTID'];
 
 // 复刻 chrome.cookies.get 的路径匹配：请求路径等于 cookie path 或以「cookiePath/」开头
 function cookieMatchesPath(cookiePath, requestPath) {
@@ -250,7 +250,7 @@ function presetCookieRecords() {
 }
 
 describe('网易云预置 cookie（ne_ensure_cookie）', () => {
-  test('三张 cookie 都限定在 /api，上游按根路径查不到（跨版本兼容）', async () => {
+  test('两张 cookie 都限定在 /api，上游按根路径查不到（跨版本兼容）', async () => {
     const jar = createCookieJar();
     const netease = createNetease({ jar, axios: createAxiosStub() });
 
@@ -290,7 +290,7 @@ describe('网易云预置 cookie（ne_ensure_cookie）', () => {
     });
   });
 
-  test('三张 /api cookie 齐全时仍然回调，且不重复写入', async () => {
+  test('两张 /api cookie 齐全时仍然回调，且不重复写入', async () => {
     const jar = createCookieJar(presetCookieRecords());
     const netease = createNetease({ jar, axios: createAxiosStub() });
 
@@ -305,7 +305,7 @@ describe('网易云预置 cookie（ne_ensure_cookie）', () => {
 
   test('只有部分 cookie 缺失时，只补缺失的那张，并回调一次', async () => {
     const jar = createCookieJar(
-      presetCookieRecords().filter((cookie) => cookie.name !== '_ntes_nnid3')
+      presetCookieRecords().filter((cookie) => cookie.name !== 'NMTID')
     );
     const netease = createNetease({ jar, axios: createAxiosStub() });
 
@@ -325,7 +325,7 @@ describe('网易云预置 cookie（ne_ensure_cookie）', () => {
     assert.strictEqual(calls, 1, 'callback 应当只调用一次');
     assert.deepStrictEqual(
       jar.writeAttempts.map((cookie) => cookie.name),
-      ['_ntes_nnid3']
+      ['NMTID']
     );
     assert.strictEqual(
       jar.cookies.find((cookie) => cookie.name === '_ntes_nuid').value,
@@ -404,7 +404,7 @@ describe('网易云搜索', () => {
     assert.strictEqual(body.get('type'), '1', '歌曲搜索对应接口 type=1');
     assert.deepStrictEqual(
       jar.writeAttempts.map((cookie) => cookie.path),
-      [LEGACY_COOKIE_PATH, LEGACY_COOKIE_PATH, LEGACY_COOKIE_PATH],
+      [LEGACY_COOKIE_PATH, LEGACY_COOKIE_PATH],
       '搜索前补写的预置 cookie 也只能在 /api 路径'
     );
     assert.deepStrictEqual(
