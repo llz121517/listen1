@@ -185,7 +185,8 @@ html {
   display: flex;
   align-items: center;
   -webkit-app-region: drag;
-  margin-right: 20px;
+  /* 顶栏铺满整宽（曾经上游留了 20px 右余量，顶栏够不到窗口右缘） */
+  margin-right: 0;
   position: absolute;
   top: 0;
   right: 0;
@@ -200,8 +201,31 @@ html {
   transition: background 0.2s;
 }
 
+/* 内容流从容器顶部开始、会被流外贴顶的顶栏压住一个顶栏高度 —— 留白用 .page 自己的
+   padding-top 给：那块区域因此仍是面板（自定义背景的玻璃盖得住），内容下缘不贴顶栏。
+   右侧滚动区里的视图全是 .page，改这一处就够，不要在别处另加顶部占位。 */
+.main .content .browser .page {
+  padding-top: calc(var(--nav-height) + 5px);
+}
+
 .main .content .browser {
   flex: 1;
+  /* 隐藏滚动条（滚动照旧，只是不画那条）：顶栏铺满整宽后那条 8px 灰条本就会被
+     压在 z-index:100 的顶栏之下，与其调位置/层级不如直接隐掉。 */
+  scrollbar-width: none;
+}
+
+.main .content .browser::-webkit-scrollbar {
+  display: none;
+  width: 0;
+}
+
+/* 播放页展开时锁住这层滚动：展开页是叠加层，底下视图不再 display:none，
+   滚轮落在没被面板盖住的边角（1vw/1vh 余量、侧栏）上仍会推动下层列表。
+   类由 ng-class="{'nowplaying-open': window_type=='track'}" 加；
+   .browser 的 overflow-y 是内联 scroll，只能 !important 压住。 */
+.main .content .browser.nowplaying-open {
+  overflow-y: hidden !important;
 }
 
 /* main framework end */
@@ -276,6 +300,33 @@ html {
 .sidebar .menu-control {
   height: 74px;
   -webkit-app-region: drag;
+}
+
+/* 侧栏顶栏卡片：.menu-control 是拖拽占位带（顶开 flex-scroll-wrapper、本身无内容），
+   外面套 .menu-control-wrap 定位容器，卡片绝对定位铺满它 —— 与右侧 .navigation 同
+   横带、同底色，两段在窗口上沿连成一条带；顶栏因此不必横向延伸去"盖"侧栏。
+   高度对齐顶栏（--nav-height）；.sidebar 有 padding-left: 1vw（上面 .main .sidebar），
+   卡片左移同样的量把缝抵消。占位带仍是 74px 拖拽区，不下压内容。 */
+.menu-control-wrap {
+  position: relative;
+  --menu-control-card-bg: var(--nav-background-color, var(--content-background-color));
+}
+
+.menu-control-card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: -1vw;
+  height: var(--nav-height, 64px);
+  background-color: var(--menu-control-card-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* 壁纸层保底：自定义背景关闭时藏掉（样式主体在 css/custom-background.css，
+   那张表只在开启时由 js/controller/profile.js 挂进来）。 */
+.custom-bg-wallpaper {
+  display: none;
 }
 
 .sidebar .menu-title {
@@ -1039,10 +1090,13 @@ ul.detail-songlist li .desc div.title:hover{
   margin-top: 50vh;
 }
 .playsong-detail .detail-songinfo .lyric p {
-  padding: 18px;
+  /* 领地：文字向上下各扩 12px 的盒子 —— 悬浮浅色圆角框、触摸热区都取这个范围
+     （原 18px，每边收窄 6px），不承担行距。行间净距全在 margin 上：
+     12 + 6 + 12 + 6 = 36px，与收窄前一致；将来调行距只改 margin，padding 不动。 */
+  padding: 12px;
+  margin: 6px 0;
   transition: all 0.2s;
   border-radius: 12px;
-  margin: 0;
   opacity: 0.28;
   cursor: default;
   background: transparent;
@@ -1053,8 +1107,21 @@ ul.detail-songlist li .desc div.title:hover{
   opacity: 0.6;
   color: var(--text-default-color);
 }
+/* 翻译行：parseLyric 按时间戳插到原句后面的独立 <p>（js/controller/play.js）。
+   与原句同吃上面的基础规则，差异只写在这里 —— 同文件、同根选择器、靠层级覆盖，
+   不再用别处更高优先级的规则打补丁。
+   间距：margin-top 转负贴向原句 —— 原句文字到翻译文字的净距 =
+   原句 padding-bottom 12 + (-6) + 翻译 padding-top 12 = 12px；
+   字号：没唱到时 13px；唱到时拿到 highlight（ng-class 的 lyricLineNumberTrans），
+   这里给 20px，比原句 highlight 的 26px 小一档，不跟着变 26。 */
 .playsong-detail .detail-songinfo .lyric p.translate {
-  margin: 5px 0 0 0;
+  margin-top: -6px;
+}
+.playsong-detail .detail-songinfo .lyric p.translate:not(.highlight) {
+  font-size: 13px;
+}
+.playsong-detail .detail-songinfo .lyric p.translate.highlight {
+  font-size: 20px;
 }
 .playsong-detail .detail-songinfo .lyric p.hide {
   display: none;
@@ -1104,6 +1171,7 @@ ul.detail-songlist .playlist-search .playlist-clear-icon {
 }
 ul.detail-songlist .playlist-search .playlist-search-input {
   width: 174px;
+  padding-right: 26px;
   background-color: transparent;
   border-style: none;
   font-size: 16px;
@@ -1556,6 +1624,24 @@ svg.searchspinner {
 }
 .footer .footer-main.slidedown {
   height: calc(98vh - 2px);
+}
+/* 「显示专辑封面作为背景」开启（类由 listen1.html 的 ng-class 加在 .footer-main 上）：
+   ① 展开态对下层更不透明 —— 面板底色仍是 --nav-background-color，用 color-mix 往
+   同色相的实底色（--content-background-color）掺到 ≈0.84 alpha；两套 palette 里这两个
+   颜色 RGB 一致（浅色都白、深色都 #222），不会串色只是变实。浏览器不支持 color-mix
+   时丢弃该声明，优雅降级回上面的 0.75。
+   ② 封面模糊减弱：.bg 原本 blur(200px)（上面 .bg 规则），这里减到 120px，
+   contrast / brightness 维持。 */
+.footer .footer-main.slidedown.has-cover-bg {
+  background-color: color-mix(
+    in srgb,
+    var(--nav-background-color) 65%,
+    var(--content-background-color)
+  );
+}
+
+.footer .footer-main.has-cover-bg .bg {
+  filter: blur(120px) contrast(75%) brightness(150%);
 }
 .footer .footerwrap {
   width: 100%;

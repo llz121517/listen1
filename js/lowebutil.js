@@ -113,3 +113,25 @@ function smoothScrollTo(element, to, duration) {
   };
   requestAnimationFrame(animateScroll);
 }
+
+/**
+ * 歌单内搜索（#playlist-search-input）的匹配规则：按空白把查询词拆成多个关键词，
+ * 大小写不敏感；每个关键词都要命中 title / artist / album 之一（关键词 AND、字段 OR）。
+ * 空查询不过滤任何曲目；缺字段按不命中处理，不抛异常。
+ */
+function matchPlaylistFilter(song, key) {
+  const keywords = String(key || '')
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word !== '');
+  if (keywords.length === 0) {
+    return true;
+  }
+  return keywords.every((word) =>
+    ['title', 'artist', 'album'].some(
+      (field) =>
+        typeof song[field] === 'string' && song[field].toLowerCase().includes(word)
+    )
+  );
+}

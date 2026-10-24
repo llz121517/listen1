@@ -170,47 +170,61 @@ class netease {
     // netease default cookie expire time: 100 years
     const expire =
       (new Date().getTime() + 1e3 * 60 * 60 * 24 * 365 * 100) / 1000;
+    const presetCookies = [
+      {
+        url: domain,
+        name: nuidName,
+        value: nuidValue,
+        expirationDate: expire,
+        sameSite: 'no_restriction',
+        // SameSite=None 必须 Secure，否则 Chrome 拒绝写入
+        // （报 "Failed to parse or set cookie"，cookie 落不了盘）
+        secure: true,
+      },
+      {
+        url: domain,
+        name: nnidName,
+        value: nnidValue,
+        expirationDate: expire,
+        sameSite: 'no_restriction',
+        secure: true,
+      },
+      {
+        url: domain,
+        name: nmtidName,
+        value: nmtidValue,
+        expirationDate: expire,
+        sameSite: 'no_restriction',
+        secure: true,
+      },
+    ];
+
     async.concat(
-      [
-        { url: domain, name: nuidName },
-        { url: domain, name: nnidName },
-        { url: domain, name: nmtidName },
-      ],
-      (item, cb) => {
-        cookieGet(item, (result) => cb(null, result));
+      presetCookies,
+      (cookie, cb) => {
+        cookieGet({ url: cookie.url, name: cookie.name }, (result) =>
+          cb(null, result)
+        );
       },
       (_, results) => {
-        if (results.filter((i) => i === null).length > 0) {
-          async.concat(
-            [
-              {
-                url: domain,
-                name: nuidName,
-                value: nuidValue,
-                expirationDate: expire,
-                sameSite: 'no_restriction',
-              },
-              {
-                url: domain,
-                name: nnidName,
-                value: nnidValue,
-                expirationDate: expire,
-                sameSite: 'no_restriction',
-              },
-              {
-                url: domain,
-                name: nmtidName,
-                value: nmtidValue,
-                expirationDate: expire,
-                sameSite: 'no_restriction',
-              },
-            ],
-            cookieSet,
-            () => {
-              callback(null);
-            }
-          );
+        const missing = presetCookies.filter(
+          (cookie, index) => !results[index]
+        );
+        // cookie 齐全也要放行：这个 callback 是歌单 / 搜索请求的唯一入口，
+        // 只写在「缺 cookie」分支里会让 cookie 落盘后请求永远发不出去。
+        if (missing.length === 0) {
+          callback(null);
+          return;
         }
+        // chrome.cookies.set 的回调是 (cookie, error)，不是 (err, result)，
+        // 直接把 cookieSet 当 iteratee 会被 async 当成出错而提前收尾。
+        async.each(
+          missing,
+          (cookie, cb) => {
+            cookieSet(cookie, () => cb());
+          },
+          () => callback(null)
+        );
       }
     );
   }
@@ -303,7 +317,9 @@ class netease {
     return {
       success: (fn) => {
         const list_id = getParameterByName('list_id', url).split('_').pop();
-        const target_url = 'https://music.163.com/weapi/v3/playlist/detail';
+        // 网页端与 NeteaseCloudMusicApi 现在都取 v6；v3 是同一后端的老前缀，
+        // 两者返回结构一致（v6 的音质对象多一个 sr 字段），这里跟着现行接口走。
+        const target_url = 'https://music.163.com/weapi/v6/playlist/detail';
         const d = {
           id: list_id,
           offset: 0,

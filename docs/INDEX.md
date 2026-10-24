@@ -6,7 +6,7 @@
 | 项 | 值 |
 | --- | --- |
 | 项目 | Listen 1（Chrome / Firefox 扩展，同时作为 Listen1 桌面版渲染层） |
-| 版本 | `2.2.1`（语义化版本 SemVer；权威值在 `package.json`/`package-lock.json`/`manifest*.json`，界面展示值来自 `config/about.json`） |
+| 版本 | 固定 `1.0.0`（2026-10-17 起不再使用版本号机制：变更按日期记录、构建差异由提交哈希区分，见 `CHANGELOG.md` 头部与 `docs/CONVENTIONS.md` §7） |
 | 一句话 | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble |
 | 技术栈 | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载 |
 | 入口 | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker） |
@@ -15,8 +15,7 @@
 | License | MIT（`LICENSE`） |
 
 > **fork 与版本方案**：本仓库是 [llz121517/listen1](https://github.com/llz121517/listen1)，fork 自 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)。
-> 版本号为 `2.2.1`（语义化版本 SemVer，本 fork 独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系）；上游更新日志已归档到 [`docs/origin/`](origin/)，本 fork 的日志见 [`CHANGELOG.md`](../CHANGELOG.md)。
-> 浏览器扩展清单的 `version` 只接受 1~4 段纯数字（Chrome / Firefox 均不接受字母与连字符），因此全仓库统一写 `2.2.1`（不再使用 `version_name`）；界面展示值来自 `config/about.json`。
+> 自 2026-10-17 起不再使用版本号机制：各处 `version` 固定 `1.0.0`，变更以日期小节记录在 [`CHANGELOG.md`](../CHANGELOG.md)、构建差异由提交哈希区分；「检查更新」已移除。上游更新日志已归档到 [`docs/origin/`](origin/)。
 
 ---
 
@@ -72,7 +71,7 @@ listen1/
 ├── manifest.json                        Manifest V3：Chrome/Edge
 ├── manifest_firefox.json                Manifest V2：Firefox
 ├── rules_1.json                         声明式网络请求规则（改 Referer/UA 绕过防盗链，见 §9）
-├── package.json                         仅 devDependencies（eslint/prettier/husky），version 2.2.1
+├── package.json                         仅 devDependencies（eslint/prettier/husky），version 固定 1.0.0
 ├── .eslintrc.json .prettierrc .gitignore
 ├── .github/workflows/eslint.yml         CI：push/PR 到 main 跑 npx eslint .
 ├── README.md                            中文说明（英文版见 docs/en/README.md）
@@ -85,7 +84,7 @@ listen1/
 │   ├── player_thread.js          665    音频引擎（Howler 封装、播放列表、进度事件）
 │   ├── l1_player.js              238    播放器门面 window.l1Player（UI 唯一调用入口）
 │   ├── loweb.js                  444    服务层 MediaService：Provider 注册表 + 播放地址解析 + 自动切源
-│   ├── lowebutil.js              115    通用工具（cookie、localStorage 扩展、isElectron…）
+│   ├── lowebutil.js              137    通用工具（cookie、localStorage 扩展、isElectron、歌单内搜索匹配…）
 │   ├── myplaylist.js             262    本地歌单存储（localStorage 实现）
 │   ├── github.js                 187    GitHub Gist 备份/恢复 + OAuth
 │   ├── lastfm.js                 249    Last.fm 授权与 scrobble
@@ -255,7 +254,7 @@ Howler 播放中
 
 | 文件 | 行数 | 职责 | 关键符号 |
 | --- | --- | --- | --- |
-| `js/lowebutil.js` | 115 | 无依赖工具集 | `isElectron():16`、`cookieGet/Set/Remove:20/38/49`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage():63`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue:79`、`getParameterByName:5`、`smoothScrollTo:99`(歌词滚动) |
+| `js/lowebutil.js` | 137 | 无依赖工具集 | `isElectron`、`cookieGet`/`cookieSet`/`cookieRemove`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue`、`getParameterByName`、`smoothScrollTo`(歌词滚动)、`matchPlaylistFilter`(歌单内搜索：大小写不敏感 + 空白分词 AND) |
 | `js/bridge.js` | 135 | UI↔播放器消息桥，定义 front/background 双协议 | `hasBackgroundPlayer`（MV2 专有 API 的收敛点）、`getPlayerMode`（模式唯一推导处）、`getPlayer/getPlayerAsync`、`addPlayerListener`、`playerSendMessage` |
 | `js/l1_player.js` | 236 | 播放器门面，UI 唯一入口；`status` 只留播放列表/循环模式/播放态（音频状态不存快照，问 `getAudioState()`） | `window.l1Player`；音频状态 `getAudioState`（同步读，background 下判空回退）/`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；其余 `play/pause/togglePlayPause/playById/loadById/seek/next/prev/random/setLoopMode/addTrack/insertTrack/removeTrack/addTracks/clearPlaylist/setNewPlaylist`；`connectPlayer`（恢复上次播放）；`injectDirectives`（6 个播放指令） |
 | `js/myplaylist.js` | 262 | 本地歌单 CRUD，纯 localStorage 实现，单例 | `myplaylistFactory():262`；`show_myplaylist:25`、`get_playlist:52`、`create_myplaylist:205`、`add_track_to_myplaylist:148`、`insert_myplaylist_to_myplaylists:78`；键名映射 `getPlaylistObjectKey:16-24` |
@@ -264,7 +263,7 @@ Howler 播放中
 
 | 文件 | 行数 | 职责 | 关键符号 |
 | --- | --- | --- | --- |
-| `js/player_thread.js` | 688 | 音频引擎：播放列表状态机 + Howler 封装 + 事件发射。音量/静音的权威状态 `_volume`/`_muted` 与**唯一**写 Howler 的出口 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`）都在这里 | `class Player`；`setRefreshRate`(10Hz)；`applyAudioState`；`getAudioState`；`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；`retrieveMediaUrl`；`finishLoad`（`new Howl` 不传 `mute`，`onplay` 里兜底 `applyAudioState()`）；`skip`(含随机表)；`seek`/`seekTime`；发射器 `sendFrameUpdate`/`sendPlayingEvent`/`sendLoadEvent`/`sendAudioStateEvent`/`sendPlaylistEvent`；mediaSession 动作；`window.threadPlayer` 单例 |
+| `js/player_thread.js` | 688 | 音频引擎：播放列表状态机 + Howler 封装 + 事件发射。音量/静音的权威状态 `_volume`/`_muted` 与**唯一**写 Howler 的出口 `applyAudioState()`（顺序固定：先 `Howler.mute` 后 `Howler.volume`）都在这里 | `class Player`；`setRefreshRate`(10Hz)；`applyAudioState`；`getAudioState`；`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；`retrieveMediaUrl`；`finishLoad`（`new Howl` 不传 `mute`，`onplay` 里兜底 `applyAudioState()`）；播放列表变更 `insertAudio`/`insertAudioByDirection`/`removeAudio`/`clearPlaylist`/`setNewPlaylist`；`skip`（三种模式的走位入口）；随机播放 `buildShuffleBag`（洗牌袋）/`startRandomRound`/`randomRoundLength`/`resetRandomPlaylist`（歌单与模式变更时作废）；`seek`/`seekTime`；发射器 `sendFrameUpdate`/`sendPlayingEvent`/`sendLoadEvent`/`sendAudioStateEvent`/`sendPlaylistEvent`；mediaSession 动作；`window.threadPlayer` 单例 |
 | `js/loweb.js` | 444 | Provider 注册表 + 服务门面（别名 `loWeb`） | `PROVIDERS:4-78`、`getProviderByName:80`、`getAllSearchProviders:88`、`getProviderByItemId:97`、`playlistCache:103`、`MediaService:116`、`search:122`、`getPlaylist:193`、`getLyric:171`、`bootstrapTrack:338`、`parseURL:302`、`mergePlaylist:325`、`clonePlaylist:217`、`loWeb = MediaService:444` |
 | `js/github.js` | 187 | GitHub OAuth + Gist 备份/恢复 | `window.GithubClient:26`；`.github`: `handleCallback:28`、`openAuthUrl:49`、`getStatusText:68`、`updateStatus:80`、`logout:97`；`.gist`: `json2gist:104`、`gist2json:138`、`listExistBackup:150`、`backupMySettings2Gist:159`、`importMySettingsFromGist:180`；axios 拦截器注入 token `:14-19` |
 | `js/lastfm.js` | 249 | Last.fm 授权 + now playing + scrobble | `window.lastfm:248`；`generateSign:31`(forge MD5)、`getAuth:141`、`getSession:57`、`sendNowPlaying:169`、`scrobble:195`、`isAuthorized:226` |
@@ -365,7 +364,7 @@ ProfileController (listen1.html 的 <body> 内联)
 经典 palette）已于 2026-10-06 整体移除，见 CHANGELOG。
 
 - 播放区只有一支：`[现代播放区]` 标记那一段（`.footer` 播放栏 + `window_type=='track'` 的展开页与队列抽屉）。
-- 展开页是**叠加层**：`window_type='track'` 只驱动播放区自己的 `slidedown`，不再把下层视图 `display:none`（`toggleNowPlaying` 不置 `is_window_hidden`、不 `resetWindow`），关闭时只回退视图 + 恢复滚动 offset。展开期间 `.browser` 由 `nowplaying-open` 类锁住滚动（见 `css/custom-background.css` 第 7 节）。
+- 展开页是**叠加层**：`window_type='track'` 只驱动播放区自己的 `slidedown`，不再把下层视图 `display:none`（`toggleNowPlaying` 不置 `is_window_hidden`、不 `resetWindow`），关闭时只回退视图 + 恢复滚动 offset。展开期间 `.browser` 由 `nowplaying-open` 类锁住滚动（规则在 `css/common2.css` 的 browser 区段）。
 - 映射表在 `js/controller/profile.js` 的 `setTheme` 里（`palettes`）：切换只改写 `#theme-css` 的 href，不往 `<html>` 写任何属性。老用户 localStorage 里的 `white` / `black` 会按深浅迁到 `white2` / `black2`。
 
 | 区块 | 定位锚点 | 样式 |
@@ -419,12 +418,13 @@ fixed 全屏层**（只有一套画法）：
 
 | 层 | 类名 | 作用 |
 | --- | --- | --- |
-| 壁纸 | `.custom-bg-wallpaper` | `position: fixed; inset: 0`、`z-index: -1`、`background-size: cover` + `center center` + `background-attachment: fixed`（居中缩放铺满、固定不动）；图片由 JS 内联 `backgroundImage` 给 |
+| 壁纸 | `.custom-bg-wallpaper` | 关闭态 `display: none`（保底在 `common2.css`）；开启态 `position: fixed; inset: 0`、`z-index: -1`、`background-size: cover` + `center center` + `background-attachment: fixed`（居中缩放铺满、固定不动），图片由 JS 内联 `backgroundImage` 给 |
 
 要点：
 
 - **层跟窗口走**，不挂在 `.body` 上 —— 挂在外壳上会被 `overflow` / 圆角裁掉，滚动容器顶部、绝对定位顶栏那侧还会漏出没覆盖的横条（踩过）。
 - **没有遮罩层**。做过一版"全屏黑遮罩 + 透明度滑块"：整屏发灰、还盖住 UI，已撤掉；壁纸保持原色。
+- **样式表按需注入**：`css/custom-background.css` 不在 `listen1.html` 静态引入 —— `applyCustomBackground()` 在开启时动态挂 `<link id="custom-background-css">`、关闭时摘掉；表内每条规则都限定 `html[data-custom-background='1']`，关闭即零规则残留。曾经堆在这张表里的外壳几何（顶栏留白 / margin、滚动条、侧栏顶带卡片、播放页锁滚、封面背景、歌词翻译行）已全部迁回 `common2.css` 的对应区段。
 - 面板玻璃：`html[data-custom-background='1']` 上定义一个 `--custom-bg-panel-glass`（默认 `0.55`，
   0 = 面板全透、1 = 面板回主题底色）与由此算出的 `--custom-bg-panel-tint`
   （`color-mix(in srgb, var(--content-background-color) calc(var(--custom-bg-panel-glass) * 100%), transparent)`），
@@ -432,7 +432,7 @@ fixed 全屏层**（只有一套画法）：
   `background-image: linear-gradient(tint, tint)` 铺在自身底色之上。**不要**改成清掉
   `background-color` 后只留渐变：`color-mix` 一旦被浏览器判为无效值，面板会整块丢底色。
 - 控制器：`js/controller/profile.js` 的"自定义背景"注释块 —— 单一入口 `applyCustomBackground()`
-  负责把状态写到 `<html>`（`data-custom-background` 开关 + 壁纸层内联背景），
+  负责把状态写到 `<html>`（`data-custom-background` 开关 + 壁纸层内联背景）并挂/摘样式表，
   `initProfile()` 与 `setTheme()` 各调一次 `initCustomBackground()`。
 - 失败处理：非图片、data URL 超 4MB、存储写满（`QuotaExceededError`）、读取失败都给 `notyf` 错误提示且不改状态；
   选图成功**不弹提示**（壁纸本身就是反馈），只有"清除"给一次成功提示。
@@ -443,15 +443,15 @@ fixed 全屏层**（只有一套画法）：
 
 | CSS | 行数（内容行；标 B 的为字节） | 状态 | 用途 |
 | --- | --- | --- | --- |
-| `css/common2.css` | 2,740 | 使用中 | 两个主题（white2 / black2）共用的结构样式表 |
-| `css/custom-background.css` | 152 | 使用中 | 自定义背景的装饰层（壁纸层 / 面板玻璃）+ 顶栏 / 侧栏顶带的几何；壁纸部分限定 `html[data-custom-background='1']`，最后一张加载，见 §7.4 |
+| `css/common2.css` | 2,740 | 使用中 | 两个主题（white2 / black2）共用的结构样式表（含壁纸层关闭态保底与外壳几何，见 §7.4） |
+| `css/custom-background.css` | 98 | 按需加载 | 自定义背景的装饰层（壁纸层 / 面板玻璃）；开启壁纸时由 `profile.js` 动态挂载，全部规则限定 `html[data-custom-background='1']`，见 §7.4 |
 | `css/iparanoid2.css` / `css/origin2.css` | 2,193 / 2,110 B | 使用中 | 现代主题的浅色（white2）/ 深色（black2）变量 |
 | `css/notyf.min.css` + `css/notyf_custom.css` | vendor + 7 行 | 使用中 | toast 样式与定制 |
 | `css/icon.css` | 1,803 B | 使用中 | `@font-face listen1-icon` 与 `.li-*` 图标类 |
 
 - **i18n**：`i18n/{zh-CN,zh-TC,en-US,fr-FR,ko-KR,pt-BR,ja-JP}.json`，**扁平无命名空间**，7 个语言各 179 个键且键集与键序完全一致；其中 168 个键以 `_` 开头（如 `_ALL_MUSIC`、`_ADD_TO_PLAYLIST`），另有 11 个非下划线键：`HELLO`、`ZOOM_IN_OUT` 以及 9 个平台名（`netease`/`bilibili`/`kugou`/`kuwo`/`migu`/`qq`/`xiami`/`taihe`/`localmusic`）。加载器为 `i18nextHttpBackend`（`app.js:497` 起），默认与回退语言均为 `zh-CN`；fork 起改为 `supportedLngs: false` + `load: 'currentOnly'` + `preload: ['zh-CN']`（`app.js:502,506-507`），**不再需要维护语言白名单**；`load: 'currentOnly'` 是必需的 —— 否则 i18next 会额外请求不带区域码的 `i18n/zh.json`（不存在 → 404 + 后端重试，首次翻译被推迟）。语言按钮由 `ng-repeat` 动态生成（`listen1.html` 里 `ng-repeat="l in languages"` 的那段模板），语言清单来自 `config/languages.json`，按钮文本取自各语言文件自己的 `_LANGUAGE_NAME`（由 `profile.js` 的 `initProfile` 加载）。`profile.js` 的首次运行自动探测仍只在 `zh-CN`/`en-US` 间选择（`detectedLangs`），但 `setLang` 可切到全部 7 种。**新增文案必须 7 个文件同步加键**（`zh-TC.json` 带 UTF-8 BOM，改它时别把 BOM 弄丢）。
 - **字体**：`fonts/listen1-icon.{eot,svg,ttf,woff}`。
-- **自定义背景**：`css/custom-background.css`（壁纸层 / 面板玻璃，机制见 §7.4）。
+- **自定义背景**：`css/custom-background.css`（壁纸层 / 面板玻璃，开启时动态加载，机制见 §7.4）。
 - **图片**：`logo*.png`/`favicon.ico`（清单与页面图标）、`mycover.jpg`（默认歌单封面）、`placeholder.png`（登录卡占位）、`feather-sprite.svg`（运行时注入 `#feather-container`，供 `<use>` 引用）、`loading.svg`/`loading-1.gif`（加载态）；`loading.gif`、`player_*.png`、`progress_indicator.png`、`statbar.png` 已无有效引用。
 
 ---
@@ -583,10 +583,11 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 
 | 我想… | 主要改动位置 |
 | --- | --- |
-| 发版 / 合并到 `main` | 先合到 `dev`，再开 PR 进 `main`；一 PR 一版本，合并提交标题 `YYYY-MM-DD x.y.z`（见 [CONVENTIONS.md](CONVENTIONS.md) §10） |
+| 合并到 `main` | 先合到 `dev`，再开 PR 进 `main`；合并提交标题只写日期 `YYYY-MM-DD`（见 [CONVENTIONS.md](CONVENTIONS.md) §10） |
 | 加一个音乐平台 | 新建 `js/provider/<name>.js` → 在 `listen1.html` 的 provider `<script>` 区（`js/provider/xiami.js` 那一组，须早于 `loweb.js`）加一行 → `loweb.js:4-78` 注册（含 2 位 id 前缀）→ `app.js:10-39` 的 `sourceList` 加 tab → `i18n/*.json` 加 `_XXX_MUSIC` → 清单补 `host_permissions` → 必要时补 `rules_1.json` |
 | 修某平台搜不到/播不了 | 对应 `js/provider/*.js`（搜索 → `search`，播放地址 → `bootstrap_track`，歌词 → `lyric`），必要时看 `rules_1.json` 是否为防盗链问题 |
-| 改播放逻辑（切歌/循环/随机） | `js/player_thread.js`（`skip:381`、loop `:438-454`）；UI 侧 `l1_player.js` |
+| 改播放逻辑（切歌/循环/随机） | `js/player_thread.js`（`skip`、`loop_mode` setter、随机播放的 `startRandomRound`/`buildShuffleBag`/`randomRoundLength`）；UI 侧 `l1_player.js` |
+| 改歌单内搜索的匹配规则 | `js/lowebutil.js` 的 `matchPlaylistFilter`；输入框、清除按钮与过滤管道在 `listen1.html` 的 `#playlist-search-input` 那一段（`filter: fieldFilter`），控制器侧是 `navigation.js` 的 `playlistFilter` |
 | 改进度条 / 歌词滚动 / 正在播放页 | `js/controller/play.js`（`parseLyric`、`BG_PLAYER:*` 消息分发，含 `AUDIO_STATE` 订阅）+ `listen1.html` 的播放区（`[现代播放区]` 标记那一段，`class="footer"`） |
 | 改快捷键 | 绑定：`play.js:786-815`、`navigation.js:605`；**同时**改展示表（设置页的 `.shortcut_table`） |
 | 加/改界面元素 | `listen1.html` —— 只有一套布局（§7.2）；外壳样式在 `css/common2.css`（本 fork 另加 `css/custom-background.css`），播放区在 `[现代播放区]` 标记那一段（`class="footer"`） |

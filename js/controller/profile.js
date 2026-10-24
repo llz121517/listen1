@@ -22,10 +22,11 @@ angular.module('listenone').controller('ProfileController', [
     if (detectedLangs.indexOf(localStorage.getObject('language')) !== -1) {
       defaultLang = localStorage.getObject('language');
     }
-    $scope.lastestVersion = '';
     $scope.theme = '';
     $scope.about = {};
     $scope.languages = [];
+    // 版本机制：本仓库不再发版，version 固定 1.0.0，构建差异由提交哈希区分；
+    // 「检查更新」（GitHub releases 查询）已整体移除。
     // 自定义背景：壁纸存 data URL（localStorage.custom_background）。DOM 落点是
     // listen1.html「[装饰层]」里的壁纸层，样式在 css/custom-background.css，
     // 见 applyCustomBackground()。
@@ -113,18 +114,6 @@ angular.module('listenone').controller('ProfileController', [
           $scope.languages = [];
         });
 
-      // Fork build: check this fork's releases instead of upstream's.
-      const url = `https://api.github.com/repos/llz121517/listen1/releases/latest`;
-      axios
-        .get(url)
-        .then((response) => {
-          $scope.lastestVersion = response.data.tag_name;
-        })
-        .catch(() => {
-          // No release published yet (or offline): keep the label hidden.
-          $scope.lastestVersion = '';
-        });
-
       $scope.initCustomBackground();
       $scope.getProxyConfig();
     };
@@ -147,6 +136,23 @@ angular.module('listenone').controller('ProfileController', [
       typeof value === 'string' && value.startsWith('data:image/');
 
     // 唯一入口：把 localStorage 里的壁纸落到 DOM。
+    // 开启时把壁纸样式表挂为 <link>、关闭时摘掉 —— 未开启就不加载那张表；
+    // 关闭态的壁纸层保底（display:none）在 common2.css。
+    const BACKGROUND_STYLESHEET_ID = 'custom-background-css';
+
+    function toggleBackgroundStylesheet(enabled) {
+      const existing = document.getElementById(BACKGROUND_STYLESHEET_ID);
+      if (enabled && !existing) {
+        const link = document.createElement('link');
+        link.id = BACKGROUND_STYLESHEET_ID;
+        link.rel = 'stylesheet';
+        link.href = 'css/custom-background.css';
+        document.head.appendChild(link);
+      } else if (!enabled && existing) {
+        existing.remove();
+      }
+    }
+
     function applyCustomBackground() {
       const html = document.documentElement;
       const wallpaper = localStorage.getObject(BACKGROUND_KEY);
@@ -157,6 +163,7 @@ angular.module('listenone').controller('ProfileController', [
       } else {
         html.removeAttribute('data-custom-background');
       }
+      toggleBackgroundStylesheet(hasWallpaper);
       const wallpaperLayer = document.querySelector('.custom-bg-wallpaper');
       if (wallpaperLayer) {
         wallpaperLayer.style.backgroundImage = hasWallpaper

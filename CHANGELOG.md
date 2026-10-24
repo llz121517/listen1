@@ -6,13 +6,57 @@
 - 上游历史日志（中文）：[docs/origin/CHANGELOG_UPSTREAM.md](docs/origin/CHANGELOG_UPSTREAM.md)
 - 上游历史日志（英文）：[docs/origin/CHANGELOG_UPSTREAM_EN.md](docs/origin/CHANGELOG_UPSTREAM_EN.md)
 
-## 版本号约定
+## 版本约定
 
-语义化版本（SemVer）`MAJOR.MINOR.PATCH`：不兼容改动升 `MAJOR`、向后兼容地新增升 `MINOR`、向后兼容地修复升 `PATCH`（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7）。扩展清单的 `version` 只接受 1~4 段纯数字，所以只用三段 `x.y.z`。
-全仓库统一：`package.json` / `package-lock.json` / `manifest.json` / `manifest_firefox.json` / `config/about.json`（界面展示值）。
-发版：`dev` → `main` 的 PR，一 PR 一版本；合并提交标题为"日期 + 版本号"（`YYYY-MM-DD / vX.Y.Z`，细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §10）。
+本仓库自 2026-10-17 起不再使用版本号机制：插件各处 `version` 字段固定 `1.0.0`，变更以**日期小节**记录（`## YYYY-MM-DD`，新的在上），构建之间的差异由**提交哈希**区分。
+历史版本小节（`[x.y.z] - 日期`）按当时的机制原样保留。`dev` → `main` 的 PR 工作流照旧，合并提交标题只写日期（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7/§10）。
 
-## [Unreleased]
+## 2026-10-24
+
+### Added
+
+- 网易云 provider 的回归测试：cookie 齐全时仍回调、歌单详情走 v6
+
+### Changed
+
+- 网易云歌单详情接口改用 `weapi/v6/playlist/detail`（与网页端一致，v3 是同一后端的旧前缀）
+
+### Fixed
+
+- 网易云歌单在预置 cookie 齐全后加载卡死：现在 cookie 齐全或部分缺失都会继续请求，且只补缺失的那几张
+
+## 2026-10-18
+
+### Fixed
+
+- 网易云预置 cookie（`_ntes_nuid` / `_ntes_nnid3` / `NMTID`）从未写入成功：`SameSite=None` 缺 `secure: true`，被 Chrome 80+ 拒收并刷 "Failed to parse or set cookie" 报错
+
+## 2026-10-17
+
+### Added
+
+- 随机播放的回归测试与 `npm test` 入口（`node --test`，`test/` 下用沙箱载入真实的 `js/player_thread.js`）
+- 歌单内搜索框恢复清除按钮（有搜索词时出现，点一下清空）
+
+### Changed
+
+- 随机播放改为半随机轮长：每轮长度在「曲目数的一半」到整张表之间随机，轮内不重复、跨轮不接续
+- 换歌单、增删曲目、拖拽排序与切换播放模式都会作废当前随机顺序；随机模式下换歌单从随机一首开始，顺序模式仍从第 0 首开始
+- 歌单内搜索改为大小写不敏感，并按空白分词：每个关键词都要命中标题 / 歌手 / 专辑 之一，制表符与全角空格同样当分隔符
+- 样式表归位重构：`custom-background.css` 收敛为纯壁纸表并改为开启壁纸时才动态挂载（关闭即摘、零规则残留，关闭态壁纸层保底挪进 `common2.css`）；堆在那张表里的七段外壳几何（顶栏留白 / 顶栏铺满 / 隐藏滚动条 / 侧栏顶带卡片 / 播放页锁滚 / 封面背景 / 歌词翻译行）全部迁回 `common2.css` 对应区段，外观不变
+- 歌词行 `padding` / `margin` 职责分离：`padding` 只承担悬浮框与触摸热区的"领地"，行距全权由 `margin` 表达；翻译行与原句共用同根基础样式、差异写在同文件的 `.translate` 变体里，不再靠跨表优先级补丁；交互领地每边收窄 6px（18px → 12px，悬浮框与热区同步），行距、贴句距离维持不变
+- 抛弃版本号机制：插件各处 `version` 字段固定 `1.0.0`，CHANGELOG 改按日期小节记录变更、构建差异由提交哈希区分；`dev` → `main` 的 PR 工作流保留，历史版本小节原样保留
+- 移除「检查更新」：设置页不再请求 GitHub releases 接口，"最新版本"一行随查询一并删除
+
+### Removed
+
+- 设置页「最新版本」展示（GitHub releases 查询）
+
+### Fixed
+
+- 洗牌取随机项时漏掉"不与自身交换"这一项，可达顺序只有 `(l-1)!` 种，短歌单的随机播放实际退化成固定循环
+- 带下标插入曲目时插入的是列表项数组、且下标 0 失效
+- 歌单内搜索在曲目缺少 `artist` / `album` 字段时会抛异常
 
 ## [2.2.1] - 2026-10-07
 
@@ -23,7 +67,7 @@
 
 ### Fixed
 
-- 复播曲目的音量 / 静音不即时生效（播过的 Howl 已被 `skip()` 开头的 `Howler.unload()` 移出全局遍历范围，随机模式复播必命中）
+- 复播曲目的音量 / 静音不即时生效（播过的 Howl 已被 `skip()` 开头的 `Howler.unload()` 移出全局遍历范围，复播必命中）
 
 ## [2.2.0] - 2026-10-07
 

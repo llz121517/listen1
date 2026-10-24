@@ -16,7 +16,8 @@
 
     <link href="css/iparanoid2.css" rel="stylesheet" id="theme-css" />
     <link href="css/common2.css" rel="stylesheet" />
-    <link href="css/custom-background.css" rel="stylesheet" />
+    <!-- css/custom-background.css 不静态引入：开启壁纸时由 js/controller/profile.js
+         动态挂载，关闭态壁纸层保底在 common2.css -->
 
     <!--
       ===========================================================================
@@ -29,7 +30,8 @@
       ■ 样式表加载顺序（见上面的 <link>，顺序不要动）
         iparanoid2.css(#theme-css，palette；setTheme 按主题换它的 href)
         → common2.css（唯一结构表，恒加载；静态 <link>，不再由 JS 改写）
-        → custom-background.css（自定义背景 + 顶栏 / 侧栏顶带的几何）
+        → custom-background.css（仅壁纸层/面板玻璃；开启壁纸时由 profile.js 动态挂载，
+          全部规则限定 html[data-custom-background='1']，关闭即摘、零规则残留）
 
       ■ 结构地图（按下面的 [区域] 标记注释定位；文档不写行号，约定见 docs/CONVENTIONS.md）
         [对话框]      .shadow + 各 dialog 模板
@@ -122,8 +124,10 @@
     <div ng-controller="ProfileController" ng-init="initProfile()">
       <div class="body">
         <!-- ===== [装饰层] 自定义背景的壁纸层 =====
-             一个 fixed 全屏层：居中缩放铺满、固定满窗；显示与否由 js/controller/profile.js
-             写 <html data-custom-background="1"> 控制，样式见 css/custom-background.css。 -->
+             一个 fixed 全屏层：居中缩放铺满、固定满窗。开关与样式表都由
+             js/controller/profile.js 的 applyCustomBackground() 控制：开启时写
+             <html data-custom-background="1"> 并动态挂载 css/custom-background.css，
+             关闭时两者都撤（关闭态保底 display:none 在 common2.css）。 -->
         <div class="custom-bg-wallpaper"></div>
         <div
         id="feather-container"
@@ -1584,9 +1588,6 @@
                               </p>
                               <p>{{_DESIGNER}} ({{_THEME_BLACK}}, {{_THEME_WHITE}}): {{about.designers.modern}}</p>
                               <p>{{_VERSION}}: {{about.version}} {{_LICENSE_NOTICE}}</p>
-                              <p ng-show='lastestVersion!=""'>
-                                {{_LATEST_VERSION}}: {{lastestVersion}}
-                              </p>
                             </div>
                           <div style="transition: 0.3s;" ng-style="{'padding-bottom':playlist.length == 0?'13px':'120px'}"></div>
                           </div>
@@ -1792,6 +1793,25 @@
                                 ng-model="playlistFilter.key"
                                 placeholder="{{_SEARCH_PLAYLIST}}"
                               />
+                              <svg
+                                fill="currentColor"
+                                class="playlist-clear-icon"
+                                style="opacity: 0.28;width: 14px;height: 14px;"
+                                aria-hidden="true"
+                                focusable="false"
+                                data-prefix="fas"
+                                data-icon="times"
+                                role="img"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 352 512"
+                                ng-show="playlistFilter.key!=''"
+                                ng-click="clearFilter()"
+                              >
+                                <path
+                                  fill="currentColor"
+                                  d="M242.72 256l100.07-100.07c12.28-12.28 12.28-32.19 0-44.48l-22.24-22.24c-12.28-12.28-32.19-12.28-44.48 0L176 189.28 75.93 89.21c-12.28-12.28-32.19-12.28-44.48 0L9.21 111.45c-12.28 12.28-12.28 32.19 0 44.48L109.28 256 9.21 356.07c-12.28 12.28-12.28 32.19 0 44.48l22.24 22.24c12.28 12.28 32.2 12.28 44.48 0L176 322.72l100.07 100.07c12.28 12.28 32.2 12.28 44.48 0l22.24-22.24c12.28-12.28 12.28-32.19 0-44.48L242.72 256z"
+                                ></path>
+                              </svg>
                             </div>
                             <!-- <div class="playlist-search">
                               <svg class="feather playlist-search-icon">

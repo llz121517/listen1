@@ -10,7 +10,12 @@
   class Player {
     constructor() {
       this.playlist = [];
+      // 随机播放状态：洗牌袋（长度 2l：前半是本轮顺序，后半是逆映射）、
+      // 本轮锚位（本轮起点那首在顺序里的位置）、轮内已走步数、本轮长度
       this._random_playlist = [];
+      this._random_anchor = -1;
+      this._random_steps = 0;
+      this._random_len = 0;
       this.index = -1;
       this._loop_mode = 0;
       this._media_uri_list = {};
@@ -93,11 +98,21 @@
         disabled: false, // avoid first time load block
         howl: null,
       };
-      if (idx) {
-        this.playlist.splice(idx, 0, [audio]);
+      const originTrack = this.currentAudio;
+      if (typeof idx === 'number' && idx >= 0 && idx < this.playlist.length) {
+        this.playlist.splice(idx, 0, audioData);
+        // 插到当前曲目之前会把它挤后一位，按 id 找回来
+        const foundIndex = this.playlist.findIndex(
+          (i) => originTrack && i.id === originTrack.id
+        );
+        if (foundIndex >= 0) {
+          this.index = foundIndex;
+        }
       } else {
         this.playlist.push(audioData);
       }
+      // 歌单变了，当前的随机顺序作废
+      this.resetRandomPlaylist();
       this.sendPlaylistEvent();
       this.sendLoadEvent();
     }
@@ -138,6 +153,8 @@
         this.index = foundOriginTrackIndex;
       }
 
+      // 歌单变了，当前的随机顺序作废
+      this.resetRandomPlaylist();
       this.sendPlaylistEvent();
       this.sendLoadEvent();
     }
@@ -170,6 +187,8 @@
         }
       }
 
+      // 歌单变了，当前的随机顺序作废
+      this.resetRandomPlaylist();
       this.sendPlaylistEvent();
       this.sendLoadEvent();
     }
@@ -186,6 +205,7 @@
     clearPlaylist() {
       this.stopAll(); // stop the loadded track before remove list
       this.playlist = [];
+      this.resetRandomPlaylist();
       Howler.unload();
       this.sendPlaylistEvent();
       this.sendLoadEvent();
@@ -209,9 +229,14 @@
           ...audio,
           howl: null,
         }));
-        // TODO: random mode need random choose first song to load
-        this.index = 0;
-        this.load(0);
+        this.resetRandomPlaylist();
+        // 随机模式从随机的第一首开始；顺序模式仍从第 0 首开始
+        const startIndex =
+          this._loop_mode === 2
+            ? Math.floor(Math.random() * this.playlist.length)
+            : 0;
+        this.index = startIndex;
+        this.load(startIndex);
       }
       this.sendPlaylistEvent();
     }
@@ -418,6 +443,59 @@
     }
 
     /**
+     * 随机播放的洗牌袋：长度 2l，前半是本轮播放顺序（值为曲目下标），
+     * 后半是逆映射（[l + 下标] = 它在本轮里的位置），skip() 靠它 O(1) 走位。
+     * 用标准 Fisher–Yates（j ∈ [0, i]）保证 l! 种顺序等概率；少取一项（j ∈ [0, i-1]，
+     * 即"不和自己交换"）会让可达顺序退化成 (l-1)! 种，短歌单下随机播放会变成固定循环。
+     */
+    static buildShuffleBag(l) {
+      const order = Array.from({ length: l }, (_v, i) => i);
+      for (let i = l - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const swap = order[i];
+        order[i] = order[j];
+        order[j] = swap;
+      }
+      const bag = order.concat(new Array(l).fill(0));
+      order.forEach((trackIndex, position) => {
+        bag[l + trackIndex] = position;
+      });
+      return bag;
+    }
+
+    /**
+     * 本轮长度：半随机 —— 至少半张表，至多整张表。
+     * 轮长不满 l 时"刚播完的那首"天然落在本轮之外（它就在锚位上），
+     * 于是既不会跨轮连播同一首，轮末那首也不会被同一首长期占住。
+     */
+    static randomRoundLength(l) {
+      const minLength = Math.max(1, Math.ceil(l / 2));
+      return minLength + Math.floor(Math.random() * (l - minLength + 1));
+    }
+
+    /**
+     * 开一轮新的随机播放：重洗，并把当前曲目放在锚位（本轮从锚位之后开始走）。
+     * @param {Number} originIndex 当前曲目下标；不在范围内表示没有正在播的曲目
+     */
+    startRandomRound(originIndex) {
+      const l = this.playlist.length;
+      const bag = Player.buildShuffleBag(l);
+      const originInRange = originIndex >= 0 && originIndex < l;
+      this._random_playlist = bag;
+      this._random_anchor = originInRange ? bag[l + originIndex] : l - 1;
+      this._random_steps = 0;
+      this._random_len = Player.randomRoundLength(l);
+    }
+
+    /** 丢掉随机播放状态：下一次随机走位会重新洗牌。 */
+    resetRandomPlaylist() {
+      this._random_playlist = [];
+      this._random_anchor = -1;
+      this._random_steps = 0;
+      this._random_len = 0;
+    }
+
+    /**
      * Skip to the next or previous track.
      * @param  {String} direction 'next' or 'prev'.
      */
@@ -426,40 +504,45 @@
       // Get the next track based on the direction of the track.
       const nextIndexFn = (idx) => {
         const l = this.playlist.length;
+        // 空歌单：没有可走位的位置，交给下面的循环去广播失败
+        if (l === 0) return idx;
+
+        const indexInRange = idx >= 0 && idx < l;
         const random_mode = this._loop_mode === 2 || direction === 'random';
 
-        let rdx = idx;
-
-        if (random_mode) {
-          if (this._random_playlist.length / 2 !== l) {
-            // construction random playlist
-            const a = Array.from({ length: l }, (_v, i) => i);
-            for (let i = 0; i < l; i += 1) {
-              const e = l - i - 1;
-              const s = Math.floor(Math.random() * e);
-              const t = a[s];
-              a[s] = a[e];
-              a[e] = t;
-              // lookup table
-              a[t + l] = e;
-            }
-            this._random_playlist = a;
+        if (!random_mode) {
+          if (this._random_playlist.length !== 0) {
+            // clear random playlist
+            this.resetRandomPlaylist();
           }
-          rdx = this._random_playlist[idx + l];
-        } else if (this._random_playlist.length !== 0) {
-          // clear random playlist
-          this._random_playlist = [];
+          if (!indexInRange) return direction === 'prev' ? l - 1 : 0;
+          return direction === 'prev' ? (idx - 1 + l) % l : (idx + 1) % l;
+        }
+
+        if (!indexInRange) {
+          // 没有正在播的曲目：开一轮新的，从新顺序的头 / 尾进入
+          this.startRandomRound(-1);
+          this._random_steps = direction === 'prev' ? 0 : 1;
+          return this._random_playlist[direction === 'prev' ? l - 1 : 0];
+        }
+
+        const bagMissing = this._random_playlist.length / 2 !== l;
+        if (
+          bagMissing ||
+          (direction !== 'prev' && this._random_steps >= this._random_len)
+        ) {
+          // 没洗过牌 / 歌单变了 / 本轮已播完：换一轮新顺序
+          this.startRandomRound(idx);
         }
 
         if (direction === 'prev') {
-          if (rdx === 0) rdx = l;
-          rdx -= 1;
+          this._random_steps = Math.max(this._random_steps - 1, -1);
         } else {
-          rdx += 1;
+          this._random_steps += 1;
         }
-        const result = random_mode ? this._random_playlist[rdx % l] : rdx % l;
+        const position = (this._random_anchor + this._random_steps + l) % l;
 
-        return result;
+        return this._random_playlist[position];
       };
       this.index = nextIndexFn(this.index);
 
@@ -492,6 +575,10 @@
       }
       if (!Object.values(LOOP_MODE).includes(myMode)) {
         return;
+      }
+      if (myMode !== this._loop_mode) {
+        // 换播放模式后旧洗牌顺序作废：切进随机要重新洗牌，切出去也不必留着
+        this.resetRandomPlaylist();
       }
       this._loop_mode = myMode;
     }

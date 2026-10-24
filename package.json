@@ -1,10 +1,10 @@
 {
   "name": "listen1_chrome_extension",
-  "version": "2.2.1",
+  "version": "1.0.0",
   "description": "one for all free music in china",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test --test-isolation=none \"test/**/*.test.js\""
   },
   "repository": {
     "type": "git",

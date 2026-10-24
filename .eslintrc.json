@@ -22,5 +22,21 @@
     },
     "ignorePatterns": [
         "**/vendor/*.js"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "test/**/*.js"
+            ],
+            "env": {
+                "node": true
+            },
+            "rules": {
+                "class-methods-use-this": "off",
+                "import/no-unresolved": "off",
+                "max-classes-per-file": "off",
+                "no-underscore-dangle": "off"
+            }
+        }
     ]
 }
