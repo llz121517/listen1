@@ -17,9 +17,12 @@
 
 - 网易云 provider 的回归测试：cookie 齐全时仍回调、预置 cookie 限定 `/api` 路径、歌单详情走 v6
 - 播放页展开时面板下方的全屏遮罩（跟随主题底色，65% 不透明）
+- 播放器子系统的回归测试：列表模型 / 媒体会话 / Howl 生命周期 / 三套运行时加载冒烟（`npm test` 共 75 例）
 
 ### Changed
 
+- 播放器子系统拆分为列表模型 / 音频引擎 / 媒体会话 / 运行时适配 / 编排五个模块，`player_thread.js` 缩为组装入口
+- 切歌改为旧音源只暂停、新曲开播后再定向卸载旧 Howl，不再整栈 `Howler.unload()`
 - 网易云歌单详情接口改用 `weapi/v6/playlist/detail`（与网页端一致，v3 是同一后端的旧前缀）
 - 专辑封面背景图层的不透明度由 0.6 提升到 0.65
 - 中英文 README 同步 fork 定位与变更记录口径
@@ -28,8 +31,15 @@
 
 ### Fixed
 
+- 系统媒体控件在切歌瞬间消失再出现：metadata 现在随切歌立即更新，不再等新的 `onplay`
+- 快速连续切歌时过期地址请求可能让旧曲目晚到抢播：取地址与 Howl 事件按 load 代际校验
+- 切歌空窗期给 `mediaSession.setPositionState` 传 `duration: 0` 的非法参数
+- `READY` 消息始终发不出去（顶层 `this.mode` 为 `undefined`），改由 `setMode()` 在模式确定后广播
 - 网易云歌单在预置 cookie 齐全后加载卡死：现在 cookie 齐全或部分缺失都会继续请求，且只补缺失的那几张
 - 网易云预置 cookie 限定到 `/api` 路径、根路径不再写入，切回上游版本也不会触发它「cookie 齐全不回调」的死锁
+- 播放中再次点击同一首歌会叠出第二个音轨（Howler 对正在播放的 Howl 再 `play()` 会新建 sound）：复用分支现在先判断是否已在播放
+- 单曲播放失败 / 全部曲目都不可播时 `isPlaying` 卡在 true：失败卸载 Howl 后补发 `isPlaying=false` 与 `paused`
+- 等待取地址期间按暂停会留下不播的 Howl（音频元素/网络连接累积）：现在 URL 回来只缓存地址并卸载临时 Howl
 
 ## 2026-10-18
 

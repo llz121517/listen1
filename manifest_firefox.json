@@ -12,6 +12,11 @@
       "js/background.js",
       "js/vendor/howler.core.min.js",
       "js/bridge.js",
+      "js/player/playlist_model.js",
+      "js/player/audio_engine.js",
+      "js/player/media_session.js",
+      "js/player/player_host.js",
+      "js/player/player_core.js",
       "js/player_thread.js"
     ],
     "persistent": true

@@ -1,26 +1,22 @@
 /**
- * 测试 harness：把真实的 js/player_thread.js 载进一个带 stub 的 vm 沙箱。
+ * 测试 harness：把新的播放器模块载入一个带 stub 的 vm 沙箱，组合出真实的 PlayerCore。
  *
- * 被测文件是浏览器脚本（无 import/export，依赖 Howler / MediaService / window 等全局），
- * 所以这里不做任何源码改写，只补它需要的全局：
- *   - Howler / Howl：复刻被测代码用到的那部分语义（_howls 列表、unload 摘除自己、node 音量）
- *   - MediaService.bootstrapTrack：同步回调一个假 URL（让 play() 走到 finishLoad）
- *   - playerSendMessage：记录广播，供断言消息用
- *   - navigator = {}：跳过 mediaSession 分支；setInterval 空实现：不留下定时器
- *
- * Player 类没有导出，但实例挂在 window.threadPlayer 上，用 .constructor 取回类即可。
+ * 依赖的浏览器全局：
+ *   - Howler / Howl：复刻被测代码用到的那部分语义（_howls 列表、unload 摘除自己、
+ *     node 音量、play() 同步触发 onplay）；
+ *   - MediaMetadata / navigator = {}：跳过 mediaSession 分支；
+ *   - setInterval 空实现：不留下定时器。
+ * PlayerCore 的 host 用 fake：resolveUrl 走一个同步的 MediaService 假实现。
  */
-const fs = require('node:fs');
-const path = require('node:path');
 const vm = require('node:vm');
+const { loadScripts, globalValue } = require('./player_vm');
 
-const PLAYER_SOURCE_PATH = path.join(
-  __dirname,
-  '..',
-  '..',
-  'js',
-  'player_thread.js'
-);
+const PLAYER_SOURCES = [
+  'js/player/playlist_model.js',
+  'js/player/media_session.js',
+  'js/player/audio_engine.js',
+  'js/player/player_core.js',
+];
 
 function createHowler() {
   return {
@@ -50,20 +46,33 @@ function createHowlClass(howler) {
     constructor(options = {}) {
       this.options = options;
       this.node = { volume: 1, muted: false };
+      this._playing = false;
       howler._howls.push(this);
     }
 
     playing() {
-      return false;
+      return this._playing;
     }
 
     play() {
+      this._playing = true;
+      if (typeof this.options.onplay === 'function') {
+        this.options.onplay(this.id);
+      }
       return 1;
     }
 
-    pause() {}
+    pause() {
+      const wasPlaying = this._playing;
+      this._playing = false;
+      if (wasPlaying && typeof this.options.onpause === 'function') {
+        this.options.onpause(this.id);
+      }
+    }
 
-    stop() {}
+    stop() {
+      this._playing = false;
+    }
 
     unload() {
       const index = howler._howls.indexOf(this);
@@ -92,63 +101,56 @@ function createHowlClass(howler) {
   };
 }
 
-/**
- * 载入被测文件，返回可复用的工厂。
- * @returns {{ createPlayer: Function, messages: Array, setRandom: Function }}
- */
 function loadPlayerHarness() {
   const howler = createHowler();
   const Howl = createHowlClass(howler);
   const messages = [];
-
   let randomSource = Math.random;
 
   const sandbox = {
     Howler: howler,
     Howl,
-    MediaService: {
-      bootstrapTrack(track, onSuccess) {
-        onSuccess({
+    MediaMetadata: class {},
+    navigator: {},
+    setInterval: () => 0,
+    clearInterval: () => {},
+    __nextRandom: () => randomSource(),
+  };
+  sandbox.window = sandbox;
+  const context = loadScripts(sandbox, PLAYER_SOURCES);
+  vm.runInContext('Math.random = () => __nextRandom();', context);
+  const Player = globalValue(context, 'PlayerCore');
+
+  const createPlayer = (tracks, options = {}) => {
+    howler._howls.length = 0;
+    const { loopMode = 0, index = 0 } = options;
+    const host = {
+      mode: 'front',
+      send(type, data) {
+        messages.push(data === undefined ? { type } : { type, data });
+      },
+      resolveUrl(track, callback) {
+        callback({
           url: `test://${track.id}.mp3`,
           bitrate: 128,
           platform: track.source || 'test',
         });
       },
-    },
-    MediaMetadata: class {},
-    navigator: {},
-    setInterval: () => 0,
-    clearInterval: () => {},
-    playerSendMessage: (mode, message) => {
-      messages.push(message);
-    },
-    __nextRandom: () => randomSource(),
-    console,
-  };
-  sandbox.window = sandbox;
-
-  const context = vm.createContext(sandbox);
-  vm.runInContext('Math.random = () => __nextRandom();', context);
-  vm.runInContext(fs.readFileSync(PLAYER_SOURCE_PATH, 'utf8'), context, {
-    filename: PLAYER_SOURCE_PATH,
-  });
-
-  const Player = sandbox.window.threadPlayer.constructor;
-
-  /**
-   * @param {Array} tracks 曲目（至少要有 id）
-   * @param {{loopMode?: Number, index?: Number}} [options] loopMode: 0 顺序 / 1 单曲循环 / 2 随机
-   */
-  const createPlayer = (tracks, options = {}) => {
-    const { loopMode = 0, index = 0 } = options;
-    const player = new Player();
+    };
+    const player = new Player({ host });
     player.mode = 'front';
-    player.playlist = tracks.map((track) => ({
-      ...track,
-      disabled: false,
-      howl: null,
-    }));
-    player.index = index;
+    player.playlistModel.setList(
+      tracks.map((track) => ({
+        ...track,
+        disabled: false,
+        howl: null,
+      })),
+      { index }
+    );
+    if (typeof index === 'number') {
+      // setList 会把越界下标夹成 0；显式写回，保住 shuffle 测试里 index: -1 的越界用例
+      player.playlistModel.index = index;
+    }
     player.loop_mode = loopMode;
     return player;
   };
