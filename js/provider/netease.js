@@ -160,7 +160,7 @@ class netease {
 
   static ne_ensure_cookie(callback) {
     const domain = 'https://music.163.com';
-    // 三张预置 cookie 只挂到 /api 路径下（旧搜索接口是 /api/search/pc），故意不写根路径。
+    // 预置 cookie 只挂到 /api 路径下（旧搜索接口是 /api/search/pc），故意不写根路径。
     //
     // 原因：上游原版用 {url: 'https://music.163.com'}（根路径）查这几张 cookie，只有
     // 查到「缺失」才会走「补写 + 回调」；而它自己因为 SameSite=None 缺 Secure 永远写不
@@ -170,10 +170,11 @@ class netease {
     // 仍然会进入「缺失」分支，不会再被我们留下的 cookie 带崩。
     const cookiePath = '/api';
     const cookieCheckUrl = `${domain}${cookiePath}`;
+    // 只补两张：实测 /api/search/pc 在 _ntes_nuid + NMTID 下就能拿全搜索结果；设备
+    // cookie _ntes_nnid（上游曾误写成 _ntes_nnid3）对搜索无效，不再往共享 cookie jar
+    // 里写第三张。
     const nuidName = '_ntes_nuid';
-    const nnidName = '_ntes_nnid3';
     const nuidValue = this._create_secret_key(32);
-    const nnidValue = `${nuidValue},${new Date().getTime()}`;
     const nmtidName = 'NMTID';
     const nmtidValue = '0';
 
@@ -190,15 +191,6 @@ class netease {
         sameSite: 'no_restriction',
         // SameSite=None 必须 Secure，否则 Chrome 拒绝写入
         // （报 "Failed to parse or set cookie"，cookie 落不了盘）
-        secure: true,
-      },
-      {
-        url: domain,
-        path: cookiePath,
-        name: nnidName,
-        value: nnidValue,
-        expirationDate: expire,
-        sameSite: 'no_restriction',
         secure: true,
       },
       {
