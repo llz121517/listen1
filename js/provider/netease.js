@@ -160,6 +160,16 @@ class netease {
 
   static ne_ensure_cookie(callback) {
     const domain = 'https://music.163.com';
+    // 三张预置 cookie 只挂到 /api 路径下（旧搜索接口是 /api/search/pc），故意不写根路径。
+    //
+    // 原因：上游原版用 {url: 'https://music.163.com'}（根路径）查这几张 cookie，只有
+    // 查到「缺失」才会走「补写 + 回调」；而它自己因为 SameSite=None 缺 Secure 永远写不
+    // 进去，所以一直停在「缺失」分支。我们把 cookie 写进根路径后，上游一查「齐全」就
+    // 不再回调，歌单 / 搜索请求整个卡死 —— 这是 9105790 留下的跨版本副作用。
+    // 限定到 /api 后：我们的搜索请求（/api/search/pc）照常带上；上游按根路径查不到，
+    // 仍然会进入「缺失」分支，不会再被我们留下的 cookie 带崩。
+    const cookiePath = '/api';
+    const cookieCheckUrl = `${domain}${cookiePath}`;
     const nuidName = '_ntes_nuid';
     const nnidName = '_ntes_nnid3';
     const nuidValue = this._create_secret_key(32);
@@ -173,6 +183,7 @@ class netease {
     const presetCookies = [
       {
         url: domain,
+        path: cookiePath,
         name: nuidName,
         value: nuidValue,
         expirationDate: expire,
@@ -183,6 +194,7 @@ class netease {
       },
       {
         url: domain,
+        path: cookiePath,
         name: nnidName,
         value: nnidValue,
         expirationDate: expire,
@@ -191,6 +203,7 @@ class netease {
       },
       {
         url: domain,
+        path: cookiePath,
         name: nmtidName,
         value: nmtidValue,
         expirationDate: expire,
@@ -202,7 +215,8 @@ class netease {
     async.concat(
       presetCookies,
       (cookie, cb) => {
-        cookieGet({ url: cookie.url, name: cookie.name }, (result) =>
+        // 检查也必须落在 /api 路径上，否则永远匹配不到自己写的 cookie、每次都要重写
+        cookieGet({ url: cookieCheckUrl, name: cookie.name }, (result) =>
           cb(null, result)
         );
       },
