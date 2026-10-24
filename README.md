@@ -2,6 +2,8 @@
 
 [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension) 的分支版本
 
+修复部分遗留问题，删除经典主题，功能增强
+
 简体中文 |
 <a href="docs/en/README.md">English</a>
 
@@ -65,7 +67,7 @@ V2.9.0 新特性：自动切换播放源(Beta)
 
 ## 更新日志
 
-> 本 fork 采用语义化版本（SemVer，`MAJOR.MINOR.PATCH`），当前 `2.2.1`；独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系。上游历史日志已归档，不再在本文件维护。
+> 本 fork 采用日期分段，提交哈希区分版本方式；独立编号，与上游历史版本号（最后 `2.33.0`）无对应关系。上游历史日志已归档，不再在本文件维护。
 
 - 本 fork 的更新日志：[CHANGELOG.md](CHANGELOG.md)
 - 上游历史日志（归档原文）：[docs/origin/CHANGELOG_UPSTREAM.md](docs/origin/CHANGELOG_UPSTREAM.md)

@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable global-require */
-/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm */
+/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines */
 
 function getCSSStringFromSetting(setting) {
   let { backgroundAlpha } = setting;
@@ -61,6 +61,8 @@ angular.module('listenone').controller('PlayController', [
     };
     $scope.lyricArray = [];
     $scope.lyricLineNumber = -1;
+    // 当前歌词是否有翻译行：决定播放页“词/译”开关是否显示（见 hasLyricTranslationLines）
+    $scope.hasLyricTranslation = false;
     $scope.lastTrackId = null;
 
     $scope.enableGloablShortcut = false;
@@ -669,9 +671,15 @@ angular.module('listenone').controller('PlayController', [
             ).success((res) => {
               const { lyric, tlyric } = res;
               if (!lyric) {
+                $scope.hasLyricTranslation = false;
                 return;
               }
               $scope.lyricArray = parseLyric(lyric, tlyric);
+              // 歌词在切歌之后才异步取回：开关的显隐只按这里解析出的真实翻译行判定，
+              // 切歌那一刻对应的是上一首歌曲的状态。
+              $scope.hasLyricTranslation = hasLyricTranslationLines(
+                $scope.lyricArray
+              );
             });
             $scope.lastTrackId = msg.data.currentPlaying.id;
             if (isElectron()) {
