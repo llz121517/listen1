@@ -1921,8 +1921,10 @@
                      样式见 css/common2.css 的播放区段：选择器直接以 .footer / .songdetail-wrapper
                      为根，2.0.0 起不再有 .player-modern 作用域前缀。 ===== -->
                 <div>
-                <div class="footer" ng-class="{footerdef:playlist.length == 0}">
-                  
+                <div class="footer" ng-class="{footerdef:playlist.length == 0, 'nowplaying-open': window_type=='track'}">
+                  <!-- 播放页展开时的全屏遮罩：压在面板下方、盖住面板之后的页面，
+                       样式见 css/common2.css 的 .footer .nowplaying-mask -->
+                  <div class="nowplaying-mask"></div>
                   <div class="footer-main" ng-style="{background}"  ng-class="{slidedown: window_type=='track', 'has-cover-bg': enableNowplayingCoverBackground}">
                     <div class="bgwrapper" ng-class="{slidedown: window_type=='track'}" style="overflow:hidden ;">
                       <div

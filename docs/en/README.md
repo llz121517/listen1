@@ -2,6 +2,8 @@
 
 fork of [listen1/listen1_chrome_extension](https://github.com/listen1/listen1_chrome_extension)
 
+Fixes some inherited issues, removes the classic theme, and adds features.
+
 <a href="../../README.md">简体中文</a>
 | English
 
@@ -50,7 +52,7 @@ Making your own playlist is also supported.
 
 ## Changelog
 
-> This fork uses semantic versioning (SemVer, `MAJOR.MINOR.PATCH`) and is currently at `2.2.1`; it versions independently of upstream (last release: `2.33.0`). The upstream changelog is archived and no longer maintained here.
+> This fork groups changes by date sections and distinguishes builds by commit hash; it versions independently of upstream (last upstream version: `2.33.0`). The upstream changelog is archived and no longer maintained here.
 
 - This fork's changelog: [CHANGELOG.md](../../CHANGELOG.md)
 - Upstream changelog (archived, verbatim): [docs/origin/CHANGELOG_UPSTREAM_EN.md](../origin/CHANGELOG_UPSTREAM_EN.md)
