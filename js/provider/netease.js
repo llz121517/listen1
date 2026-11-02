@@ -102,6 +102,18 @@ class netease {
     };
   }
 
+  /**
+   * 远端页面 HTML 只用来抽字段，不需要任何内联事件属性；但 DOMParser 会把 HTML 里的
+   * onerror/onload 之类编译成事件处理器，在扩展页 CSP（script-src 'self'）下刷
+   * "Executing inline event handler violates ..." 报错。解析前先剥掉。
+   */
+  static _strip_inline_handlers(html) {
+    return String(html).replace(
+      /\s+on[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi,
+      ''
+    );
+  }
+
   static show_playlist(url) {
     const order = 'hot';
     const offset = getParameterByName('offset', url);
@@ -126,10 +138,12 @@ class netease {
       success: (fn) => {
         axios.get(target_url).then((response) => {
           const { data } = response;
+          const doc = new DOMParser().parseFromString(
+            this._strip_inline_handlers(data),
+            'text/html'
+          );
           const list_elements = Array.from(
-            new DOMParser()
-              .parseFromString(data, 'text/html')
-              .getElementsByClassName('m-cvrlst')[0].children
+            doc.getElementsByClassName('m-cvrlst')[0].children
           );
           const result = list_elements.map((item) => ({
             cover_img_url: item
@@ -597,6 +611,100 @@ class netease {
             lyric: lrc,
             tlyric: tlrc,
           });
+        });
+      },
+    };
+  }
+
+  /**
+   * 播放历史上报（同步到网易云「听歌排行」）。
+   *
+   * 官方 web 客户端在开播时发 action=startplay、在切歌/播完时发 action=play 的 bi-log：
+   *   POST https://clientlogusf.music.163.com/weapi/feedback/weblog?csrf_token=<__csrf>
+   * body 就是本文件 weapi() 的 params/encSecKey，明文为
+   *   { logs: '[{"action":"play","json":{...}}]', csrf_token }
+   * 服务端只在带齐浏览器 cookie（设备/会话 cookie，不是只有 MUSIC_U）时才真正记账，
+   * 缺 cookie 时同样回 {"code":200,"data":"success"}，所以只能靠 /api/v1/play/record 校验。
+   *
+   * url: /submit_play_history?track_id=netrack_202369&action=play&time=42&end=ui
+   */
+  static submit_play_history(url) {
+    const track_id = (getParameterByName('track_id', url) || '').split('_').pop();
+    const action = getParameterByName('action', url) || 'play';
+    const end = getParameterByName('end', url) || 'ui';
+    const played = Math.round(Number(getParameterByName('time', url)) || 0);
+
+    return {
+      success: (fn) => {
+        if (!/^\d+$/.test(track_id)) {
+          // 没有有效歌曲 id：不发送，避免拼出 id=0/NaN 的无效日志
+          fn({ status: 'fail', data: { reason: 'invalid_track' } });
+          return;
+        }
+        cookieGet({ url: 'https://music.163.com', name: 'MUSIC_U' }, (auth) => {
+          if (!auth) {
+            // 没登录：不发送，避免服务端把无主日志静默丢掉
+            fn({ status: 'fail', data: { reason: 'not_login' } });
+            return;
+          }
+          cookieGet(
+            { url: 'https://music.163.com', name: '__csrf' },
+            (csrfCookie) => {
+              const csrf = csrfCookie ? csrfCookie.value : '';
+              let logItem;
+              if (action === 'play') {
+                logItem = {
+                  action,
+                  json: {
+                    type: 'song',
+                    wifi: 0,
+                    download: 0,
+                    id: Number(track_id),
+                    time: played,
+                    end,
+                    mainsite: '1',
+                    mainsiteWeb: '1',
+                    content: '',
+                  },
+                };
+              } else {
+                logItem = {
+                  action,
+                  json: {
+                    id: Number(track_id),
+                    type: 'song',
+                    content: '',
+                    mainsite: '1',
+                    mainsiteWeb: '1',
+                  },
+                };
+              }
+              const data = this.weapi({
+                logs: JSON.stringify([logItem]),
+                csrf_token: csrf,
+              });
+              const target_url = `https://clientlogusf.music.163.com/weapi/feedback/weblog?csrf_token=${csrf}`;
+              // 必须 credentials:'include'：服务端要整包 cookie 才记账
+              fetch(target_url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(data).toString(),
+              })
+                .then((response) => response.json())
+                .then((res_data) =>
+                  fn({
+                    status: res_data.code === 200 ? 'success' : 'fail',
+                    data: res_data,
+                  })
+                )
+                .catch((error) =>
+                  fn({ status: 'fail', data: { error: String(error) } })
+                );
+            }
+          );
         });
       },
     };

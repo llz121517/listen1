@@ -109,6 +109,7 @@
     <script type="text/javascript" src="js/myplaylist.js"></script>
     <script type="text/javascript" src="js/loweb.js"></script>
     <script type="text/javascript" src="js/l1_player.js"></script>
+    <script type="text/javascript" src="js/play_history.js"></script>
     <script type="text/javascript" src="js/app.js"></script>
     <script type="text/javascript" src="js/controller/profile.js"></script>
     <script type="text/javascript" src="js/controller/auth.js"></script>
@@ -1292,6 +1293,32 @@
                                   ng-show="enableLyricFloatingWindowTranslation"
                                 ></span
                                 >{{_SHOW_DESKTOP_LYRIC_TRANSLATION}}
+                              </div>
+                            </div>
+                            <!-- ===== [播放历史同步] =====
+                                 仅网易云曲目：开播/切歌时按官方 bi-log 协议上报，
+                                 用于同步「听歌排行」。实现见 js/play_history.js -->
+                            <div class="settings-title">
+                              <span>{{_PLAY_HISTORY}}</span>
+                            </div>
+                            <div class="settings-content">
+                              <div class="shortcut">
+                                <svg
+                                  class="feather"
+                                  ng-show="!enablePlayHistorySync"
+                                  ng-click="togglePlayHistorySync()"
+                                >
+                                  <use href="#square"></use>
+                                </svg>
+                                <svg
+                                  class="feather"
+                                  ng-show="enablePlayHistorySync"
+                                  ng-click="togglePlayHistorySync()"
+                                >
+                                  <use href="#check-square"></use>
+                                </svg>
+                                <span ng-show="enablePlayHistorySync"></span
+                                >{{_PLAY_HISTORY_NOTICE}}
                               </div>
                             </div>
                             <div class="settings-title">

@@ -70,6 +70,8 @@
  "_VIEW_SHORTCUTS_LIST": "View Shortcuts List",
  "_GLOBAL_SHORTCUTS_NOTICE": "Enable Global Shortcuts",
  "_LYRIC_DISPLAY": "Lyric Display",
+ "_PLAY_HISTORY": "Play History Sync",
+ "_PLAY_HISTORY_NOTICE": "After signing in, sync your playback history and progress to NetEase Cloud Music.",
  "_SHOW_DESKTOP_LYRIC": "Show desktop lyric",
  "_SHOW_LYRIC_TRANSLATION": "Show lyric translation",
  "_SHOW_DESKTOP_LYRIC_TRANSLATION": "Show lyric translation with desktop lyric",

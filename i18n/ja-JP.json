@@ -70,6 +70,8 @@
   "_VIEW_SHORTCUTS_LIST": "ショートカット一覧を表示",
   "_GLOBAL_SHORTCUTS_NOTICE": "グローバルショートカットを有効にする",
   "_LYRIC_DISPLAY": "歌詞表示",
+  "_PLAY_HISTORY": "再生履歴の同期",
+  "_PLAY_HISTORY_NOTICE": "ログイン後、再生履歴と再生位置を NetEase Cloud Music に同期します。",
   "_SHOW_DESKTOP_LYRIC": "デスクトップ歌詞を有効にする",
   "_SHOW_LYRIC_TRANSLATION": "外国語歌詞の翻訳を表示（再生ページ）",
   "_SHOW_DESKTOP_LYRIC_TRANSLATION": "外国語歌詞の翻訳を表示（デスクトップ歌詞）",

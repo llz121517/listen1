@@ -70,6 +70,8 @@
  "_VIEW_SHORTCUTS_LIST": "查看快速鍵列表",
  "_GLOBAL_SHORTCUTS_NOTICE": "啟用全域快速鍵",
  "_LYRIC_DISPLAY": "歌詞顯示",
+ "_PLAY_HISTORY": "播放歷史同步",
+ "_PLAY_HISTORY_NOTICE": "登入後，將音樂播放歷史進度同步到網易雲。",
  "_SHOW_DESKTOP_LYRIC": "啟用桌面歌詞",
  "_SHOW_LYRIC_TRANSLATION": "外文歌詞顯示翻譯（播放頁）",
  "_SHOW_DESKTOP_LYRIC_TRANSLATION": "外文歌詞顯示翻譯（桌面歌詞）",

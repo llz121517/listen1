@@ -178,6 +178,11 @@ angular.module('listenone').controller('PlayController', [
         'enable_nowplaying_platform',
         false
       );
+      // 播放历史上报开关：默认关闭，仅对网易云曲目生效（见 js/play_history.js）
+      $scope.enablePlayHistorySync = getLocalStorageValue(
+        'enable_play_history_sync',
+        false
+      );
 
       const defaultFloatWindowSetting = {
         fontSize: 20,
@@ -814,6 +819,14 @@ angular.module('listenone').controller('PlayController', [
         l1Player.adjustVolume(false);
       });
     });
+
+    $scope.togglePlayHistorySync = () => {
+      $scope.enablePlayHistorySync = !$scope.enablePlayHistorySync;
+      localStorage.setObject(
+        'enable_play_history_sync',
+        $scope.enablePlayHistorySync
+      );
+    };
 
     $scope.toggleLyricTranslation = () => {
       $scope.enableLyricTranslation = !$scope.enableLyricTranslation;

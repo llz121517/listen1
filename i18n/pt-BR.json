@@ -70,6 +70,8 @@
  "_VIEW_SHORTCUTS_LIST": "Ver Lista de Atalhos",
  "_GLOBAL_SHORTCUTS_NOTICE": "Habilitar Atalhos Globais",
  "_LYRIC_DISPLAY": "Exibição de letra",
+ "_PLAY_HISTORY": "Sincronização do histórico",
+ "_PLAY_HISTORY_NOTICE": "Após entrar, sincroniza o histórico e o progresso de reprodução com o NetEase Cloud Music.",
  "_SHOW_DESKTOP_LYRIC": "Mostrar letra da área de trabalho",
  "_SHOW_LYRIC_TRANSLATION": "Mostrar tradução da letra",
  "_SHOW_DESKTOP_LYRIC_TRANSLATION": "Mostrar a tradução da letra com a letra da área de trabalho",

@@ -70,6 +70,8 @@
  "_VIEW_SHORTCUTS_LIST": "Voir la liste des raccourcis",
  "_GLOBAL_SHORTCUTS_NOTICE": "Activer les raccourcis généraux",
  "_LYRIC_DISPLAY": "Affichage des parole",
+ "_PLAY_HISTORY": "Synchronisation de l'historique",
+ "_PLAY_HISTORY_NOTICE": "Après connexion, synchronise l'historique et la progression de lecture vers NetEase Cloud Music.",
  "_SHOW_DESKTOP_LYRIC": "Afficher les parole du bureau",
  "_SHOW_LYRIC_TRANSLATION": "Affiche la traduction des paroles",
  "_SHOW_DESKTOP_LYRIC_TRANSLATION": "Afficher les traductions de paroles du bureau",

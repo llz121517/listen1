@@ -70,6 +70,8 @@
   "_VIEW_SHORTCUTS_LIST": "단축키 리스트 보기",
   "_GLOBAL_SHORTCUTS_NOTICE": "전역 단축키 활성",
   "_LYRIC_DISPLAY": "가사 표시",
+  "_PLAY_HISTORY": "재생 기록 동기화",
+  "_PLAY_HISTORY_NOTICE": "로그인 후 재생 기록과 재생 진행률을 NetEase Cloud Music에 동기화합니다.",
   "_SHOW_DESKTOP_LYRIC": "바탕화면 가사 표시",
   "_SHOW_LYRIC_TRANSLATION": "외국어 가사 번역 표시",
   "_SHOW_DESKTOP_LYRIC_TRANSLATION": "외국어 가사 번역 및 바탕화면 표시",
