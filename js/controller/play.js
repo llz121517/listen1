@@ -183,13 +183,8 @@ angular.module('listenone').controller('PlayController', [
         'enable_play_history_sync',
         false
       );
-      // 逐字歌词：默认开启，有逐字数据的行按词级时间渐变点亮；
-      // 旧开关 key（enable_yrc_lyric）读过就迁移到通用 key，老用户的选择不丢
-      const storedWordLyric = getLocalStorageValue('enable_word_lyric', null);
-      $scope.enableWordLyric =
-        storedWordLyric !== null
-          ? storedWordLyric
-          : getLocalStorageValue('enable_yrc_lyric', true);
+      // 逐字歌词：默认开启，有逐字数据的行按词级时间渐变点亮
+      $scope.enableWordLyric = getLocalStorageValue('enable_word_lyric', true);
 
       const defaultFloatWindowSetting = {
         fontSize: 20,

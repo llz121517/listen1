@@ -25,7 +25,7 @@
 - 播放页歌词文本统一用行内 `span` 承载，逐字渐变只作用于开启逐字显示的行
 - `_SHOW_LYRIC_TRANSLATION` 的中/日/繁中文案去掉「（播放页）」限定，并新增「逐字歌词显示支持（仅网易云）」等 7 种语言的同义文案
 - 歌词处理层通用化：逐字歌词按格式名分发（`wordLyric: { format, text }`），挂载 / 配对 / 渐变与平台无关，接入新平台只需注册解析器
-- 逐字歌词命名统一为通用名（`wordLyricProgress`、`--word-lyric-p`、`enable_word_lyric`、`_SHOW_WORD_LYRIC`），旧 `enable_yrc_lyric` 开关值自动迁移
+- 逐字歌词命名统一为通用名（`wordLyricProgress`、`--word-lyric-p`、`enable_word_lyric`、`_SHOW_WORD_LYRIC`）
 - 已实现的设计与调研文档归档到 `docs/archive/`，索引与文档分工同步更新
 
 ### Fixed
