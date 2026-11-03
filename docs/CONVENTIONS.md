@@ -31,6 +31,8 @@
 | `CHANGELOG.md` | 更新日志：Keep a Changelog，英文小节标题 + 中文正文；**新条目默认写进当天日期小节 `## YYYY-MM-DD`**（§7） |
 | `docs/en/README.md` | 英文说明，与中文 `README.md` 互链 |
 | `docs/origin/` | 上游历史日志归档（只读，不再维护） |
+| `docs/archive/` | 已实现的设计/调研文档归档（只读；入口见 [archive/README.md](archive/README.md)） |
+| `docs/superpowers/` | 未实现的设计/计划工作目录（由规划流程生成，实现后归档到 `docs/archive/`） |
 
 ## 3. CHANGELOG 纪律（默认动作，不必等人叮嘱）
 

@@ -10,7 +10,7 @@
 | 一句话  | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble                              |
 | 技术栈  | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载                        |
 | 入口    | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker）                                                                       |
-| 规模    | 非 vendor JS 11,302 行 / 35 文件；CSS 3,123 行 / 7 文件；i18n 1,267 行；`listen1.html` 2,372 行                                            |
+| 规模    | 非 vendor JS 11,905 行 / 38 文件；CSS 3,126 行 / 7 文件；i18n 1,281 行；`listen1.html` 2,421 行                                            |
 | 仓库    | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `main`）                                  |
 | License | MIT（`LICENSE`）                                                                                                                           |
 
@@ -91,13 +91,14 @@ listen1/
 │   ├── l1_player.js              238    播放器门面 window.l1Player（UI 唯一调用入口）
 │   ├── loweb.js                  444    服务层 MediaService：Provider 注册表 + 播放地址解析 + 自动切源
 │   ├── lowebutil.js              137    通用工具（cookie、localStorage 扩展、isElectron、歌单内搜索匹配…）
+│   ├── lyric_parser.js           328    歌词整形（LRC 解析 / 逐字歌词格式分发与挂载 / 翻译配对 / 渐变进度）
 │   ├── myplaylist.js             262    本地歌单存储（localStorage 实现）
 │   ├── github.js                 187    GitHub Gist 备份/恢复 + OAuth
 │   ├── lastfm.js                 249    Last.fm 授权与 scrobble
 │   ├── background.js             213    MV3 service worker（打开页面、OAuth 回调转发）
 │   ├── oauth_callback.js          15    内容脚本：抓 GitHub OAuth code 回传后台
 │   ├── controller/                      AngularJS 控制器（8 文件，2,270 行）
-│   │   ├── play.js               903    播放状态、歌词、设置项、快捷键、BG_PLAYER 消息处理
+│   │   ├── play.js               860    播放状态、歌词、设置项、快捷键、BG_PLAYER 消息处理
 │   │   ├── navigation.js         705    视图路由、歌单/对话框操作、备份导入导出
 │   │   ├── profile.js            300    语言、主题、代理、版本检查
 │   │   ├── instant_search.js     139    多平台搜索页
@@ -106,7 +107,7 @@ listen1/
 │   │   ├── auth.js                49    各平台登录状态
 │   │   └── my_playlist.js         43    侧栏歌单列表
 │   ├── provider/                       音乐源适配器（9 文件，5,257 行，见 §6.3）
-│   │   ├── netease.js            962    网易云
+│   │   ├── netease.js           1101    网易云
 │   │   ├── migu.js               921    咪咕
 │   │   ├── qq.js                 867    QQ 音乐
 │   │   ├── kuwo.js               790    酷我
@@ -226,7 +227,7 @@ Howler 播放中
             └─ background 模式：chrome.runtime.sendMessage     bridge.js
                  └─ play.js 按 type 分发（`BG_PLAYER:*` 消息处理那一段）：
                       FRAME_UPDATE → 进度条 + 歌词行滚动
-                      LOAD         → MediaService.getLyric + parseLyric
+                      LOAD         → MediaService.getLyric + parseLyric（js/lyric_parser.js）
                       PLAYLIST     → 写入 localStorage 'current-playing'
                       PLAY_STATE   → 标题/isPlaying；reason==='Ended' 时 Last.fm scrobble
 ```
@@ -268,6 +269,7 @@ Howler 播放中
 | 文件               | 行数 | 职责                                                                                                     | 关键符号                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ---- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `js/lowebutil.js`  | 137  | 无依赖工具集                                                                                             | `isElectron`、`cookieGet`/`cookieSet`/`cookieRemove`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue`、`getParameterByName`、`smoothScrollTo`(歌词滚动)、`matchPlaylistFilter`(歌单内搜索：大小写不敏感 + 空白分词 AND)                                               |
+| `js/lyric_parser.js` | 328  | 歌词整形：LRC 解析、逐字歌词按格式分发挂载、翻译行配对、渐变进度 | `parseLyric`、`parseWordLyric`、`parseYrc`、`wordLyricProgress`、`attachWordLyricLines`、`pairTranslations`、`parseTimedLines`、`normalizeLyricText`  |
 | `js/bridge.js`     | 135  | UI↔ 播放器消息桥，定义 front/background 双协议                                                           | `hasBackgroundPlayer`（MV2 专有 API 的收敛点）、`getPlayerMode`（模式唯一推导处）、`getPlayer/getPlayerAsync`、`addPlayerListener`、`playerSendMessage`                                                                                                                                                                                                              |
 | `js/l1_player.js`  | 236  | 播放器门面，UI 唯一入口；`status` 只留播放列表/循环模式/播放态（音频状态不存快照，问 `getAudioState()`） | `window.l1Player`；音频状态 `getAudioState`（同步读，background 下判空回退）/`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；其余 `play/pause/togglePlayPause/playById/loadById/seek/next/prev/random/setLoopMode/addTrack/insertTrack/removeTrack/addTracks/clearPlaylist/setNewPlaylist`；`connectPlayer`（恢复上次播放）；`injectDirectives`（6 个播放指令） |
 | `js/myplaylist.js` | 262  | 本地歌单 CRUD，纯 localStorage 实现，单例                                                                | `myplaylistFactory():262`；`show_myplaylist:25`、`get_playlist:52`、`create_myplaylist:205`、`add_track_to_myplaylist:148`、`insert_myplaylist_to_myplaylists:78`；键名映射 `getPlaylistObjectKey:16-24`                                                                                                                                                             |
@@ -299,7 +301,7 @@ Howler 播放中
 | `get_playlist(url)`                        | `list_id` 前缀派发                                                                    | `{tracks, info}`                                                       |
 | `parse_url(url)`                           | 平台 URL                                                                              | `{type:'playlist', id:'<2位前缀>_<id>'}` 或 `undefined`                |
 | `bootstrap_track(track, success, failure)` | track                                                                                 | `success({url, bitrate, platform})` / `failure({})`                    |
-| `lyric(url)`                               | 歌词 URL                                                                              | `{lyric, tlyric}`                                                      |
+| `lyric(url)`                               | 歌词 URL                                                                              | `{lyric, tlyric, wordLyric}`（`wordLyric` 可空，格式见 `js/lyric_parser.js`）                                                      |
 | `get_user()`                               | —                                                                                     | `{status, data:{is_login, user_id, nickname, avatar, platform, data}}` |
 | `get_login_url()` / `logout()`             | —                                                                                     | 登录 URL / 清 cookie                                                   |
 | `login(url)`                               | 仅 `netease.js:750` 实现                                                              | —                                                                      |
@@ -332,7 +334,7 @@ Howler 播放中
 | 文件                              | 行数 | 控制器                    | `ng-controller` 位置                                                               | 职责要点                                                                                                                                                                                                                                                                                                               |
 | --------------------------------- | ---- | ------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `js/controller/profile.js`        | 300  | `ProfileController`       | `listen1.html` 的 `<body>` 内联 `ng-controller="ProfileController"`（包裹整套 UI） | 语言（`setLang`，按钮清单来自 `config/languages.json`）、主题（`setTheme`）、代理由 Electron IPC 管理（`setProxyConfig` / `getProxyConfig` / 状态回调 `ipcRenderer.on`）、`initProfile` 拉取 `config/about.json`、`config/languages.json` 并查最新 release（fork 版查 `llz121517/listen1` 的 release，失败则隐藏该行） |
-| `js/controller/play.js`           | 910  | `PlayController`          | `:90`                                                                              | 播放状态、歌词渲染、`enable_*` 设置项、快捷键（`p [ ] m l s u d`）、Electron 全局快捷键、`BG_PLAYER:*` 消息分发（其中 `AUDIO_STATE` 是音量/静音的唯一常驻写入点，也是唯一的持久化点）、`parseLyric:386`                                                                                                                |
+| `js/controller/play.js`           | 910  | `PlayController`          | `:90`                                                                              | 播放状态、歌词渲染、`enable_*` 设置项、快捷键（`p [ ] m l s u d`）、Electron 全局快捷键、`BG_PLAYER:*` 消息分发（其中 `AUDIO_STATE` 是音量/静音的唯一常驻写入点，也是唯一的持久化点）                                                                                                                |
 | `js/controller/auth.js`           | 49   | `AuthController`          | `:93`                                                                              | 各平台登录状态 `musicAuth`、`refreshAuthStatus`、`openLogin`                                                                                                                                                                                                                                                           |
 | `js/controller/navigation.js`     | 705  | `NavigationController`    | `:95`                                                                              | 视图路由 `current_tag`、`showDialog(0-12)`、歌单增删改、拖拽排序、备份导入导出、`f` 聚焦搜索 `:605`                                                                                                                                                                                                                    |
 | `js/controller/my_playlist.js`    | 43   | `MyPlayListController`    | `:366`                                                                             | 侧栏"我的歌单/收藏歌单"，监听 `myplaylist:update`                                                                                                                                                                                                                                                                      |
@@ -553,7 +555,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 项       | 内容                                                                                                                             |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 包管理   | `package.json` 仅 devDependencies：eslint 7 + airbnb-base + prettier 8 + husky 4 + lint-staged 10                                |
-| 脚本     | `npm test` = `node --test --test-isolation=none "test/**/*.test.js"`（需 Node ≥ 22.8，vm 沙箱加载真实脚本，当前 80 例）          |
+| 脚本     | `npm test` = `node --test --test-isolation=none "test/**/*.test.js"`（需 Node ≥ 22.8，vm 沙箱加载真实脚本，当前 113 例）          |
 | ESLint   | `.eslintrc.json`：`ecmaVersion: 11`，继承 `airbnb-base` + `prettier`，关闭 `camelcase`、`linebreak-style`；忽略 `**/vendor/*.js` |
 | Prettier | `.prettierrc`：`singleQuote: true`、`trailingComma: "es5"`                                                                       |
 | 提交钩子 | husky pre-commit → lint-staged：非 vendor 的 `.js` 跑 `eslint --cache --fix`，`.js/.css/.md` 跑 `prettier --write`               |
@@ -606,7 +608,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 修某平台搜不到/播不了            | 对应 `js/provider/*.js`（搜索 → `search`，播放地址 → `bootstrap_track`，歌词 → `lyric`），必要时看 `rules_1.json` 是否为防盗链问题                                                                                                                                                                          |
 | 改播放逻辑（切歌/循环/随机）     | `js/player/player_core.js`（`skip`、`loop_mode` setter、`play/pause` 与取地址会话）；随机走位在 `js/player/playlist_model.js`（`startRandomRound` / `buildShuffleBag` / `randomRoundLength`）；UI 侧 `l1_player.js`                                                                                         |
 | 改歌单内搜索的匹配规则           | `js/lowebutil.js` 的 `matchPlaylistFilter`；输入框、清除按钮与过滤管道在 `listen1.html` 的 `#playlist-search-input` 那一段（`filter: fieldFilter`），控制器侧是 `navigation.js` 的 `playlistFilter`                                                                                                         |
-| 改进度条 / 歌词滚动 / 正在播放页 | `js/controller/play.js`（`parseLyric`、`BG_PLAYER:*` 消息分发，含 `AUDIO_STATE` 订阅）+ `listen1.html` 的播放区（`[现代播放区]` 标记那一段，`class="footer"`）                                                                                                                                              |
+| 改进度条 / 歌词滚动 / 正在播放页 | `js/lyric_parser.js`（`parseLyric`）+ `js/controller/play.js`（`BG_PLAYER:*` 消息分发，含 `AUDIO_STATE` 订阅）+ `listen1.html` 的播放区（`[现代播放区]` 标记那一段，`class="footer"`）                                                                                                                                              |
 | 改快捷键                         | 绑定：`play.js:786-815`、`navigation.js:605`；**同时**改展示表（设置页的 `.shortcut_table`）                                                                                                                                                                                                                |
 | 加/改界面元素                    | `listen1.html` —— 只有一套布局（§7.2）；外壳样式在 `css/common2.css`（本 fork 另加 `css/custom-background.css`），播放区在 `[现代播放区]` 标记那一段（`class="footer"`）                                                                                                                                    |
 | 改主题配色                       | `css/iparanoid2.css`(white2)、`css/origin2.css`(black2)；映射在 `js/controller/profile.js` 的 `setTheme`（`palettes`）                                                                                                                                                                                      |
@@ -629,6 +631,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | [CHANGELOG.md](../CHANGELOG.md)                                         | **本 fork** 的更新日志（自 `1.0.0` 起）与版本号约定 |
 | [docs/origin/CHANGELOG_UPSTREAM.md](origin/CHANGELOG_UPSTREAM.md)       | 上游更新日志归档（中文，原文未改）                  |
 | [docs/origin/CHANGELOG_UPSTREAM_EN.md](origin/CHANGELOG_UPSTREAM_EN.md) | 上游更新日志归档（英文，原文未改）                  |
+| [docs/archive/](archive/)                                               | 已实现的设计/调研文档归档（只读，见 [archive/README.md](archive/README.md)） |
 | [LICENSE](../LICENSE)                                                   | MIT                                                 |
 | [.github/workflows/eslint.yml](../.github/workflows/eslint.yml)         | CI 定义                                             |
 | 本 fork 仓库                                                            | https://github.com/llz121517/listen1                |

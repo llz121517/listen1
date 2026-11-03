@@ -8,7 +8,7 @@
 
 **Tech Stack:** 无构建、全局类、`<script>` 顺序加载（浏览器扩展）；Howler.js（`html5: true`）；AngularJS 控制器与门面零改动；`node:test` + `vm` 沙箱回归测试；eslint 7（airbnb-base + prettier）+ prettier 2。
 
-**Spec:** `docs/superpowers/specs/2026-10-24-player-refactor-design.md`（本计划的依据；两者冲突时以本计划的「与 spec 的差异」一节为准）
+**Spec:** `docs/archive/2026-10-24-player-refactor-design.md`（本计划的依据；两者冲突时以本计划的「与 spec 的差异」一节为准）
 
 ## Global Constraints
 
@@ -3081,8 +3081,8 @@ cmd /c "node node_modules\eslint\bin\eslint.js . > lint_out.txt 2>&1"
 
 - Modify: `docs/INDEX.md`（模块索引、启动顺序、运行时链路、已知问题、速查表）
 - Modify: `CHANGELOG.md`（`## 2026-10-24` 小节补条目）
-- Modify: `docs/superpowers/specs/2026-10-24-player-refactor-design.md`（状态行）
-- Modify: `docs/superpowers/plans/2026-10-24-player-refactor.md`（勾掉步骤；可选）
+- Modify: `docs/archive/2026-10-24-player-refactor-design.md`（状态行）
+- Modify: `docs/archive/2026-10-24-player-refactor-plan.md`（勾掉步骤；可选）
 
 **Interfaces:** 无代码接口；只改文档。
 
@@ -3130,7 +3130,7 @@ Expected：
 - [ ] **Step 5: 静态自查（不写代码，逐条回答）**
 
 - `js/controller/play.js`、`js/l1_player.js`、`js/bridge.js` 是否零改动？（`git status --short` 核对）
-- `window.threadPlayer` 的方法/属性是否覆盖 `docs/superpowers/specs/2026-10-24-player-refactor-design.md` §4.5 的完整清单？（逐个 grep 方法名）
+- `window.threadPlayer` 的方法/属性是否覆盖 `docs/archive/2026-10-24-player-refactor-design.md` §4.5 的完整清单？（逐个 grep 方法名）
 - 新文件是否都在 `listen1.html` 与 `manifest_firefox.json` 的脚本清单里？（grep 路径）
 - 有没有残留的 `Howler.unload()` 调用（除了 stub / 测试）？（`grep -rn "Howler.unload" js/`）
 - 旧实现描述是否清干净？（`Select-String -Path js, docs -Pattern 'retrieveMediaUrl|finishLoad|startRandomRound'` 不得命中旧实现描述；`finishLoad` 若在新代码里作为私有方法名保留可例外，但文档不得再描述「旧 finishLoad」）

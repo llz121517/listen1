@@ -1,7 +1,7 @@
 # 播放器子系统重构设计（god class 拆分 + Howl 生命周期重写）
 
 - 日期：2026-10-24
-- 状态：已实现（2026-10-24，实施计划见 [plans/2026-10-24-player-refactor.md](../plans/2026-10-24-player-refactor.md)）
+- 状态：已实现（2026-10-24，实施计划见 [2026-10-24-player-refactor-plan.md](2026-10-24-player-refactor-plan.md)）
 - 范围：`js/player_thread.js`、`js/bridge.js`、`js/l1_player.js` 之间的播放器子系统
 - 决策前提：保留 front / background / Electron 三套运行时路径，但只对 front（Chrome/Edge MV3）做完整测试；其它平台不专门验证
 
