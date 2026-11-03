@@ -28,6 +28,10 @@
 - 逐字歌词命名统一为通用名（`wordLyricProgress`、`--word-lyric-p`、`enable_word_lyric`、`_SHOW_WORD_LYRIC`），旧 `enable_yrc_lyric` 开关值自动迁移
 - 已实现的设计与调研文档归档到 `docs/archive/`，索引与文档分工同步更新
 
+### Fixed
+
+- 播放到带翻译的歌词后切换播放位置，上一句的翻译行仍保持高亮直到下一句（改为只高亮当前原句自己的翻译行，桌面歌词同步）
+
 ## 2026-11-02
 
 ### Added

@@ -21,8 +21,13 @@ function loadLyricParser() {
   return sandbox;
 }
 
-const { parseYrc, parseWordLyric, wordLyricProgress, parseLyric } =
-  loadLyricParser();
+const {
+  parseYrc,
+  parseWordLyric,
+  wordLyricProgress,
+  parseLyric,
+  findCurrentLyricLines,
+} = loadLyricParser();
 
 // vm 里的数组/对象属于另一个 realm，deepStrictEqual 会因为原型不同而失败，
 // 断言前统一过一遍 JSON（只比较可序列化的数据）。
@@ -399,5 +404,61 @@ describe('parseLyric：翻译行配对（回归用例，曲目 406072775）', ()
     assert.deepStrictEqual(contents(lines), ['line', '译文']);
     assert.strictEqual(lines[1].seconds, 10000);
     assert.strictEqual(lines[1].lineNumber, 1);
+  });
+});
+
+describe('findCurrentLyricLines：当前原句与它自己的翻译行', () => {
+  // 真实数据里有些原句没有翻译，旧实现取“位置之前最后一条翻译行”，
+  // 跳转播放位置落到这类原句上时，上一句的翻译行会一直保持高亮。
+  const lines = parseLyric(
+    '[00:10.00]one\n[00:20.00]two\n[00:30.00]three\n[00:40.00]four',
+    '[00:10.00]一\n[00:30.00]三',
+    null
+  );
+
+  test('空歌词 / 未唱到第一句时都返回空结果', () => {
+    [undefined, null, []].forEach((value) => {
+      const current = findCurrentLyricLines(value, 10000);
+      assert.strictEqual(current.line, null);
+      assert.strictEqual(current.translation, null);
+    });
+    const beforeFirst = findCurrentLyricLines(lines, 9999);
+    assert.strictEqual(beforeFirst.line, null);
+    assert.strictEqual(beforeFirst.translation, null);
+  });
+
+  test('唱到有翻译的句子时，原句和它的翻译行一起返回', () => {
+    const current = findCurrentLyricLines(lines, 10500);
+    assert.strictEqual(current.line.content, 'one');
+    assert.strictEqual(current.translation.content, '一');
+  });
+
+  test('跳转到没有翻译的原句：翻译行必须为空（回归：不能残留上一句的翻译）', () => {
+    const current = findCurrentLyricLines(lines, 20500);
+    assert.strictEqual(current.line.content, 'two');
+    assert.strictEqual(current.translation, null);
+  });
+
+  test('继续到下一句时换成它自己的翻译，不会回退到更早的翻译', () => {
+    const current = findCurrentLyricLines(lines, 30500);
+    assert.strictEqual(current.line.content, 'three');
+    assert.strictEqual(current.translation.content, '三');
+  });
+
+  test('同一句有多条翻译时取最后一条（与旧的最后一条已到翻译行一致）', () => {
+    const multi = parseLyric(
+      '[00:10.00]one',
+      '[00:10.00]译文甲\n[00:10.00]译文乙',
+      null
+    );
+    const current = findCurrentLyricLines(multi, 10000);
+    assert.strictEqual(current.line.content, 'one');
+    assert.strictEqual(current.translation.content, '译文乙');
+  });
+
+  test('原句时间点之前恰好是翻译行的时间也不会串句', () => {
+    const current = findCurrentLyricLines(lines, 10000);
+    assert.strictEqual(current.line.content, 'one');
+    assert.strictEqual(current.translation.content, '一');
   });
 });

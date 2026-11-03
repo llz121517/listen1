@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable global-require */
-/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines parseLyric wordLyricProgress */
+/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines parseLyric wordLyricProgress findCurrentLyricLines */
 
 function getCSSStringFromSetting(setting) {
   let { backgroundAlpha } = setting;
@@ -448,17 +448,8 @@ angular.module('listenone').controller('PlayController', [
             // update lyric position
             if (!l1Player.status.playing.id) break;
             const currentSeconds = msg.data.pos;
-            let lastObject = null;
-            let lastObjectTrans = null;
-            $scope.lyricArray.forEach((lyric) => {
-              if (currentSeconds >= lyric.seconds / 1000) {
-                if (lyric.translationFlag !== true) {
-                  lastObject = lyric;
-                } else {
-                  lastObjectTrans = lyric;
-                }
-              }
-            });
+            const { line: lastObject, translation: lastObjectTrans } =
+              findCurrentLyricLines($scope.lyricArray, currentSeconds * 1000);
             if (
               lastObject &&
               lastObject.lineNumber !== $scope.lyricLineNumber
@@ -475,12 +466,10 @@ angular.module('listenone').controller('PlayController', [
                 lineElement.offsetTop - windowHeight / 2 + adjustOffset;
               smoothScrollTo(document.querySelector('.lyric'), offset, 500);
               $scope.lyricLineNumber = lastObject.lineNumber;
-              if (
-                lastObjectTrans &&
-                lastObjectTrans.lineNumber !== $scope.lyricLineNumberTrans
-              ) {
-                $scope.lyricLineNumberTrans = lastObjectTrans.lineNumber;
-              }
+              // 翻译行跟着当前原句走：这一句没有翻译就清掉，避免跳转后上一句的翻译仍然高亮
+              $scope.lyricLineNumberTrans = lastObjectTrans
+                ? lastObjectTrans.lineNumber
+                : -1;
               if (isElectron()) {
                 const { ipcRenderer } = require('electron');
                 const currentLyric =

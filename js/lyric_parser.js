@@ -3,8 +3,9 @@
 /*
 歌词处理层：把 provider 取回的「整行 LRC / 翻译 TLRC / 逐字歌词」三份原始文本，
 整形成播放页直接消费的 lyricArray（时间统一毫秒、结构统一、lineNumber 连续）。
-对外暴露 parseLyric() / parseWordLyric() / parseYrc() / wordLyricProgress()，
-由 listen1.html 引入，controller 与单测直接使用（所以这里关掉 no-unused-vars）。
+对外暴露 parseLyric() / parseWordLyric() / parseYrc() / wordLyricProgress() /
+findCurrentLyricLines()，由 listen1.html 引入，controller 与单测直接使用
+（所以这里关掉 no-unused-vars）。
 
 分层（高内聚、低耦合）：
 - js/provider/*.js       只负责取原始文本（平台相关的解密也留在 provider），逐字歌词以
@@ -298,6 +299,38 @@ function pairTranslations(originals, translations) {
     paired.push({ ...line, seconds: nearest.seconds });
   });
   return paired;
+}
+
+/**
+ * 按播放位置找「当前原句」与它自己的翻译行（播放页高亮 / 逐字渐变 / 桌面歌词共用）。
+ * 原句取最后一个时间已到的非翻译行；翻译行只认紧跟在它之后、时间相同的连续翻译行
+ * （同一句有多条翻译时取最后一条，与旧的“最后一条已到翻译行”表现一致），
+ * 不会把上一句的翻译带过来 —— 跳转播放位置后旧翻译行必须立刻取消高亮。
+ * 返回 { line, translation }，没唱到任何原句时两者都是 null。
+ */
+function findCurrentLyricLines(lines, posMs) {
+  if (!Array.isArray(lines) || lines.length === 0) {
+    return { line: null, translation: null };
+  }
+  const position = Number(posMs) || 0;
+  let line = null;
+  lines.forEach((candidate) => {
+    if (!candidate.translationFlag && position >= candidate.seconds) {
+      line = candidate;
+    }
+  });
+  if (line === null) {
+    return { line: null, translation: null };
+  }
+  let translation = null;
+  for (let i = line.lineNumber + 1; i < lines.length; i += 1) {
+    const candidate = lines[i];
+    if (!candidate.translationFlag || candidate.seconds !== line.seconds) {
+      break;
+    }
+    translation = candidate;
+  }
+  return { line, translation };
 }
 
 /**
