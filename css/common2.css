@@ -1135,17 +1135,21 @@ ul.detail-songlist li .desc div.title:hover{
    --word-lyric-p 是 0~1 的推进比例，由 js/controller/play.js 在 FRAME_UPDATE 里写；
    注册成 <number> 才能让 transition 生效（交给浏览器补间，不用自建 rAF 循环）。
    渐变挂在行内 span 上而不是 <p> 上：inline 盒宽度就是文字宽度，短句不会因为
-   整行盒子留白而“提前唱完”。已唱用正文色、未唱是同色 35% 透明，配色只走变量。 */
+   整行盒子留白而“提前唱完”。已唱用正文色、未唱是同色 35% 透明，配色只走变量。
+   分界处留一段柔化过渡带（--word-lyric-soft）：亮/暗两个色标不再落在同一位置，
+   交界处是渐变而不是一条硬边，字与字之间不会突然跳色。 */
 @property --word-lyric-p {
   syntax: '<number>';
   inherits: false;
   initial-value: 0;
 }
 .playsong-detail .detail-songinfo .lyric p.karaoke.highlight .karaoke-text {
+  --word-lyric-soft: 0.4em;
   background-image: linear-gradient(
     to right,
-    var(--text-default-color) 0%,
-    var(--text-default-color) calc(var(--word-lyric-p, 0) * 100%),
+    var(--text-default-color) 0,
+    var(--text-default-color)
+      calc(var(--word-lyric-p, 0) * 100% - var(--word-lyric-soft)),
     color-mix(in srgb, var(--text-default-color) 35%, transparent)
       calc(var(--word-lyric-p, 0) * 100%),
     color-mix(in srgb, var(--text-default-color) 35%, transparent) 100%
