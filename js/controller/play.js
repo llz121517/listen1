@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable global-require */
-/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines parseLyric yrcLineProgress */
+/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines parseLyric wordLyricProgress */
 
 function getCSSStringFromSetting(setting) {
   let { backgroundAlpha } = setting;
@@ -183,8 +183,13 @@ angular.module('listenone').controller('PlayController', [
         'enable_play_history_sync',
         false
       );
-      // 逐字歌词（网易云 YRC）：默认开启，有逐字数据的行按词级时间渐变点亮
-      $scope.enableYrcLyric = getLocalStorageValue('enable_yrc_lyric', true);
+      // 逐字歌词：默认开启，有逐字数据的行按词级时间渐变点亮；
+      // 旧开关 key（enable_yrc_lyric）读过就迁移到通用 key，老用户的选择不丢
+      const storedWordLyric = getLocalStorageValue('enable_word_lyric', null);
+      $scope.enableWordLyric =
+        storedWordLyric !== null
+          ? storedWordLyric
+          : getLocalStorageValue('enable_yrc_lyric', true);
 
       const defaultFloatWindowSetting = {
         fontSize: 20,
@@ -496,14 +501,14 @@ angular.module('listenone').controller('PlayController', [
             }
 
             // 逐字歌词：每帧只给当前行的文字 span 写 CSS 变量做渐变推进，不重建数组、不额外触发 digest
-            if ($scope.enableYrcLyric && lastObject && lastObject.karaoke) {
+            if ($scope.enableWordLyric && lastObject && lastObject.karaoke) {
               const karaokeElement = document.querySelector(
                 `.playsong-detail .detail-songinfo .lyric p[data-line="${lastObject.lineNumber}"] .karaoke-text`
               );
               if (karaokeElement) {
                 karaokeElement.style.setProperty(
-                  '--yrc-p',
-                  yrcLineProgress(lastObject, currentSeconds * 1000).toFixed(4)
+                  '--word-lyric-p',
+                  wordLyricProgress(lastObject, currentSeconds * 1000).toFixed(4)
                 );
               }
             }
@@ -593,12 +598,12 @@ angular.module('listenone').controller('PlayController', [
               track.lyric_url,
               track.tlyric_url
             ).success((res) => {
-              const { lyric, tlyric, yrc } = res;
+              const { lyric, tlyric, wordLyric } = res;
               if (!lyric) {
                 $scope.hasLyricTranslation = false;
                 return;
               }
-              $scope.lyricArray = parseLyric(lyric, tlyric, yrc);
+              $scope.lyricArray = parseLyric(lyric, tlyric, wordLyric);
               // 歌词在切歌之后才异步取回：开关的显隐只按这里解析出的真实翻译行判定，
               // 切歌那一刻对应的是上一首歌曲的状态。
               $scope.hasLyricTranslation = hasLyricTranslationLines(
@@ -755,9 +760,9 @@ angular.module('listenone').controller('PlayController', [
       );
     };
 
-    $scope.toggleYrcLyric = () => {
-      $scope.enableYrcLyric = !$scope.enableYrcLyric;
-      localStorage.setObject('enable_yrc_lyric', $scope.enableYrcLyric);
+    $scope.toggleWordLyric = () => {
+      $scope.enableWordLyric = !$scope.enableWordLyric;
+      localStorage.setObject('enable_word_lyric', $scope.enableWordLyric);
     };
 
     $scope.toggleLyricFloatingWindowTranslation = () => {

@@ -1,18 +1,26 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-unused-vars */
 /*
-歌词整形：把 provider 取回的「整行 LRC / 翻译 TLRC / 逐字 YRC」三份原始文本，
-变成播放页直接消费的 lyricArray（时间统一毫秒，结构统一，lineNumber 连续）。
-对外暴露 parseLyric() / parseYrc() / yrcLineProgress()，由 listen1.html 引入，
-controller 与单测直接使用（所以这里关掉 no-unused-vars）。
+歌词处理层：把 provider 取回的「整行 LRC / 翻译 TLRC / 逐字歌词」三份原始文本，
+整形成播放页直接消费的 lyricArray（时间统一毫秒、结构统一、lineNumber 连续）。
+对外暴露 parseLyric() / parseWordLyric() / parseYrc() / wordLyricProgress()，
+由 listen1.html 引入，controller 与单测直接使用（所以这里关掉 no-unused-vars）。
 
 分层（高内聚、低耦合）：
-- js/provider/*.js       只负责取原始文本（网易云在 static lyric() 里带 yv: -1 取 yrc）
-- js/lyric_parser.js     只做纯数据变换：不碰 DOM、不碰 chrome.*、不碰播放器，可单测
+- js/provider/*.js       只负责取原始文本（平台相关的解密也留在 provider），逐字歌词以
+                         { format: 'yrc', text } 形式返回，不解析、不碰歌词结构
+- js/lyric_parser.js     本模块：格式分发 → 统一模型 → 挂载 / 翻译配对 / 行号；不碰 DOM、
+                         chrome.*、播放器，可以单测
 - js/controller/play.js  只负责按播放位置选行、给当前行写渐变进度
 
-原句（时间轴、行号、翻译挂靠）始终以 LRC 为准；YRC 只给对应行补词级时间。
-因此关闭逐字开关后拿到的就是改动前的整行歌词展示，两套数据不互相污染。
+新增一个平台的逐字歌词（例如 QQ 的 QRC、酷狗的 KRC）：
+1. provider 里拿到明文后返回 wordLyric: { format: '<格式名>', text }；
+2. 在本文件写对应的 parseXxx(text)，产出下面的统一模型；
+3. 在 WORD_LYRIC_PARSERS 里注册一行；
+   挂载（attachWordLyricLines）、翻译配对（pairTranslations）、渐变进度
+   （wordLyricProgress）和播放页渲染全部复用，无需改动。
+统一模型：一行 = { lineStart, lineDuration, content, words: [{ start, dur, text }] }，
+时间一律绝对毫秒；行的语义、文本匹配规则见各函数注释。
 */
 
 const YRC_LINE_REG = /^\[(\d+),(\d+)\](.*)$/;
@@ -25,11 +33,11 @@ const LYRIC_HTML_UNESCAPES = {
   '&#39;': "'",
   '&apos;': "'",
 };
-// YRC 的行起点是首词时间，与 LRC 行时间戳可能差几十到几百毫秒（实测最多约 1.1s）
-const YRC_LINE_MATCH_TOLERANCE_MS = 600;
+// 逐字行起点与 LRC 行时间戳的纯时间容差（文本对不上时的兜底）
+const WORD_LYRIC_ATTACH_TOLERANCE_MS = 600;
 // 行文本一致时可以容忍更大的时间偏差（不同发行方给的时间戳尺度不同），
 // 但只在前后这么多毫秒内找候选，避免把副歌重复句匹配到别的段落
-const YRC_CONTENT_MATCH_TOLERANCE_MS = 3000;
+const WORD_LYRIC_TEXT_MATCH_WINDOW_MS = 3000;
 // tlyric 的时间戳提取自 lrc（多数完全相等），这里只容忍少量抖动
 const TRANSLATION_MATCH_TOLERANCE_MS = 500;
 
@@ -54,9 +62,9 @@ function clampLyricProgress(value) {
 /**
  * 解析网易云 YRC 逐字歌词文本，格式为
  * `[行开始ms,行时长ms](词1开始ms,词1时长ms,0)词1(词2开始ms,词2时长ms,0)词2`，
- * 时间一律是绝对毫秒（格式与实测样本见 docs/netease-yrc-lyrics.md）。
- * 返回 [{ lineStart, lineDuration, content, words: [{ start, dur, text }] }]；
- * 空输入、非字符串、没有词组的行都跳过，解析不出内容时返回空数组（调用方回退整行歌词）。
+ * 时间一律是绝对毫秒（格式与实测样本见 docs/archive/2026-11-03-netease-yrc-lyrics.md）。
+ * 返回 [{ lineStart, lineDuration, content, words: [{ start, dur, text }] }]
+ * （即统一模型）；空输入、非字符串、没有词组的行都跳过，解析不出内容时返回空数组。
  */
 function parseYrc(yrc) {
   if (typeof yrc !== 'string' || yrc === '') {
@@ -91,11 +99,38 @@ function parseYrc(yrc) {
 }
 
 /**
- * 逐字渐变的推进比例（0~1）：这一行已经唱到哪个位置。
+ * 平台格式 → 统一模型的注册表。新增平台时在这里加一项：
+ * `qrc: parseQrc`、`krc: parseKrc` …… key 与 provider 返回的 wordLyric.format 对应。
+ */
+const WORD_LYRIC_PARSERS = {
+  yrc: parseYrc,
+};
+
+/**
+ * 按平台格式解析逐字歌词文本，产出统一模型。
+ * 没有逐字数据、格式未注册、解析失败都返回空数组（调用方回退整行歌词）。
+ */
+function parseWordLyric(wordLyric) {
+  if (!wordLyric || typeof wordLyric !== 'object') {
+    return [];
+  }
+  const parser = WORD_LYRIC_PARSERS[wordLyric.format];
+  if (typeof parser !== 'function') {
+    return [];
+  }
+  try {
+    return parser(wordLyric.text);
+  } catch (error) {
+    return [];
+  }
+}
+
+/**
+ * 逐字渐变的推进比例（0~1）：这一行已经唱到哪个位置，与平台格式无关。
  * 词内按时间插值，再按词的字符数占比折算成横向比例，渐变扫过的速度与文字宽度一致，
  * 中文长词不会一下跳过去。早于第一个词返回 0，晚于最后一个词返回 1。
  */
-function yrcLineProgress(line, posMs) {
+function wordLyricProgress(line, posMs) {
   if (!line) return 0;
   const words = Array.isArray(line.words) ? line.words : [];
   const position = Number(posMs) || 0;
@@ -160,7 +195,7 @@ function parseTimedLines(text, translationFlag) {
   return lines;
 }
 
-/** 行文本归一化：只用来判断 YRC 行和 LRC 行是不是同一句（空白、标点不参与比较）。 */
+/** 行文本归一化：只用来判断逐字行和 LRC 行是不是同一句（空白、标点不参与比较）。 */
 function normalizeLyricText(text) {
   return String(text)
     .replace(/\s+/g, '')
@@ -170,32 +205,35 @@ function normalizeLyricText(text) {
 
 /**
  * 把逐字行挂到 LRC 原句上：
- * 1. 优先按行文本匹配（YRC 与 LRC 的发行方不同，行起点可能差到 1s 上下，
+ * 1. 优先按行文本匹配（逐字歌词与 LRC 的发行方不同，行起点可能差到 1s 上下，
  *    但文本相同的才是同一句；重复句取时间最近的一处）；
- * 2. 文本对不上时再退回纯时间匹配（容差 YRC_LINE_MATCH_TOLERANCE_MS）。
+ * 2. 文本对不上时再退回纯时间匹配（容差 WORD_LYRIC_ATTACH_TOLERANCE_MS）。
  * 两边都按时间升序，匹配单向推进，不会把后面的逐字行挪到前面的原句上；
  * 空占位行（只有时间戳、没有文字）不挂逐字。
  */
-function attachYrcLines(originals, yrcLines) {
-  if (!Array.isArray(yrcLines) || yrcLines.length === 0) return;
-  let nextYrc = 0;
+function attachWordLyricLines(originals, wordLyricLines) {
+  if (!Array.isArray(wordLyricLines) || wordLyricLines.length === 0) return;
+  let nextLine = 0;
   originals.forEach((line) => {
     if (String(line.content).trim() === '') return;
     const target = normalizeLyricText(line.content);
     while (
-      nextYrc < yrcLines.length &&
-      yrcLines[nextYrc].lineStart <
-        line.seconds - YRC_CONTENT_MATCH_TOLERANCE_MS
+      nextLine < wordLyricLines.length &&
+      wordLyricLines[nextLine].lineStart <
+        line.seconds - WORD_LYRIC_TEXT_MATCH_WINDOW_MS
     ) {
-      nextYrc += 1;
+      nextLine += 1;
     }
-    let contentIndex = -1;
-    let contentDiff = Infinity;
+    let textIndex = -1;
+    let textDiff = Infinity;
     let timeIndex = -1;
     let timeDiff = Infinity;
-    for (let i = nextYrc; i < yrcLines.length; i += 1) {
-      const candidate = yrcLines[i];
-      if (candidate.lineStart > line.seconds + YRC_CONTENT_MATCH_TOLERANCE_MS) {
+    for (let i = nextLine; i < wordLyricLines.length; i += 1) {
+      const candidate = wordLyricLines[i];
+      if (
+        candidate.lineStart >
+        line.seconds + WORD_LYRIC_TEXT_MATCH_WINDOW_MS
+      ) {
         break;
       }
       const diff = Math.abs(candidate.lineStart - line.seconds);
@@ -205,26 +243,26 @@ function attachYrcLines(originals, yrcLines) {
       }
       if (
         target !== '' &&
-        diff < contentDiff &&
+        diff < textDiff &&
         normalizeLyricText(candidate.content) === target
       ) {
-        contentDiff = diff;
-        contentIndex = i;
+        textDiff = diff;
+        textIndex = i;
       }
     }
     let matchedIndex = -1;
-    if (contentIndex >= 0) {
-      matchedIndex = contentIndex;
-    } else if (timeDiff <= YRC_LINE_MATCH_TOLERANCE_MS) {
+    if (textIndex >= 0) {
+      matchedIndex = textIndex;
+    } else if (timeDiff <= WORD_LYRIC_ATTACH_TOLERANCE_MS) {
       matchedIndex = timeIndex;
     }
     if (matchedIndex < 0) return;
-    const matched = yrcLines[matchedIndex];
+    const matched = wordLyricLines[matchedIndex];
     line.karaoke = true;
     line.words = matched.words;
     line.lineStart = matched.lineStart;
     line.lineDuration = matched.lineDuration;
-    nextYrc = matchedIndex + 1;
+    nextLine = matchedIndex + 1;
   });
 }
 
@@ -263,14 +301,18 @@ function pairTranslations(originals, translations) {
 }
 
 /**
- * 歌词整形入口：LRC 为主时间轴，YRC 补逐字数据，tlyric 挂到对应原句上。
+ * 歌词整形入口：LRC 主时间轴 + 逐字歌词按格式解析后挂到对应行 + tlyric 翻译配对。
+ * 参数约定（与 provider 返回值一致）：
+ * - lyric:    LRC 文本，主时间轴；
+ * - tlyric:   翻译 LRC 文本，可为空；
+ * - wordLyric: { format, text } 或 null，逐字歌词的原始文本与格式名，可为空。
  * 返回 [{ seconds(ms), content, translationFlag, lineNumber, karaoke?, words? }]，
  * 结构与改动前一致（新增字段只出现在挂了逐字的行上），播放页按同一套字段渲染。
  */
-function parseLyric(lyric, tlyric, yrc) {
+function parseLyric(lyric, tlyric, wordLyric) {
   const originals = parseTimedLines(lyric, false);
   const translations = parseTimedLines(tlyric, true);
-  attachYrcLines(originals, parseYrc(yrc));
+  attachWordLyricLines(originals, parseWordLyric(wordLyric));
   const result = originals.concat(pairTranslations(originals, translations));
   result.sort((a, b) => {
     if (a.seconds !== b.seconds) return a.seconds - b.seconds;

@@ -601,7 +601,7 @@ class netease {
           const { data: res_data } = response;
           let lrc = '';
           let tlrc = '';
-          let yrc = '';
+          let wordLyric = null;
           if (res_data.lrc != null) {
             lrc = res_data.lrc.lyric;
           }
@@ -610,14 +610,15 @@ class netease {
             tlrc = res_data.tlyric.lyric.replace(/(|\\)/g, '');
             tlrc = tlrc.replace(/[\u2005]+/g, ' ');
           }
-          // 逐字歌词：不是每首歌都有，没有时保持空串，由播放页回退到整行歌词
+          // 逐字歌词：不是每首歌都有，没有时保持 null，由播放页回退到整行歌词；
+          // provider 只交明文 + 格式名，解析交给 js/lyric_parser.js
           if (res_data.yrc != null && res_data.yrc.lyric != null) {
-            yrc = res_data.yrc.lyric;
+            wordLyric = { format: 'yrc', text: res_data.yrc.lyric };
           }
           return fn({
             lyric: lrc,
             tlyric: tlrc,
-            yrc,
+            wordLyric,
           });
         });
       },
