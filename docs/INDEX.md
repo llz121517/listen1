@@ -10,7 +10,7 @@
 | 一句话  | 聚合网易云 / QQ / 酷狗 / 酷我 / B 站 / 咪咕 / 千千音乐的搜索与播放，本地歌单 + Gist 云备份 + Last.fm scrobble                              |
 | 技术栈  | 原生 ES6 + AngularJS 1.x + Howler.js + axios + i18next + forge，**无打包器/无构建步骤**，全部靠 `<script>` 顺序加载                        |
 | 入口    | `listen1.html`（扩展页面）/ `js/background.js`（MV3 service worker）                                                                       |
-| 规模    | 非 vendor JS 11,905 行 / 38 文件；CSS 3,126 行 / 7 文件；i18n 1,281 行；`listen1.html` 2,421 行                                            |
+| 规模    | 非 vendor JS 12,143 行 / 38 文件；CSS 3,134 行 / 7 文件；i18n 1,288 行；`listen1.html` 2,422 行                                            |
 | 仓库    | https://github.com/listen1/listen1_chrome_extension （本工作区 remote: `llz121517/listen1`，分支 `main`）                                  |
 | License | MIT（`LICENSE`）                                                                                                                           |
 
@@ -91,14 +91,14 @@ listen1/
 │   ├── l1_player.js              238    播放器门面 window.l1Player（UI 唯一调用入口）
 │   ├── loweb.js                  444    服务层 MediaService：Provider 注册表 + 播放地址解析 + 自动切源
 │   ├── lowebutil.js              137    通用工具（cookie、localStorage 扩展、isElectron、歌单内搜索匹配…）
-│   ├── lyric_parser.js           344    歌词整形（LRC 解析 / 逐字歌词格式分发与挂载 / 翻译配对 / 当前行选取 / 渐变进度）
+│   ├── lyric_parser.js           519    歌词整形（LRC 解析 / 逐字歌词格式分发与对齐 / LRC 视图与逐字视图 / 翻译配对 / 当前行选取 / 渐变进度）
 │   ├── myplaylist.js             262    本地歌单存储（localStorage 实现）
 │   ├── github.js                 187    GitHub Gist 备份/恢复 + OAuth
 │   ├── lastfm.js                 249    Last.fm 授权与 scrobble
 │   ├── background.js             213    MV3 service worker（打开页面、OAuth 回调转发）
 │   ├── oauth_callback.js          15    内容脚本：抓 GitHub OAuth code 回传后台
-│   ├── controller/                      AngularJS 控制器（8 文件，2,270 行）
-│   │   ├── play.js               860    播放状态、歌词、设置项、快捷键、BG_PLAYER 消息处理
+│   ├── controller/                      AngularJS 控制器（8 文件，2,250 行）
+│   │   ├── play.js               869    播放状态、歌词视图切换、设置项、快捷键、BG_PLAYER 消息处理
 │   │   ├── navigation.js         705    视图路由、歌单/对话框操作、备份导入导出
 │   │   ├── profile.js            300    语言、主题、代理、版本检查
 │   │   ├── instant_search.js     139    多平台搜索页
@@ -227,7 +227,7 @@ Howler 播放中
             └─ background 模式：chrome.runtime.sendMessage     bridge.js
                  └─ play.js 按 type 分发（`BG_PLAYER:*` 消息处理那一段）：
                       FRAME_UPDATE → 进度条 + 歌词行滚动
-                      LOAD         → MediaService.getLyric + parseLyric（js/lyric_parser.js）
+                      LOAD         → MediaService.getLyric + parseLyric（js/lyric_parser.js，一次产出 LRC / 逐字两种视图，按开关选一个）
                       PLAYLIST     → 写入 localStorage 'current-playing'
                       PLAY_STATE   → 标题/isPlaying；reason==='Ended' 时 Last.fm scrobble
 ```
@@ -269,7 +269,7 @@ Howler 播放中
 | 文件               | 行数 | 职责                                                                                                     | 关键符号                                                                                                                                                                                                                                                                                                                                                             |
 | ------------------ | ---- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `js/lowebutil.js`  | 137  | 无依赖工具集                                                                                             | `isElectron`、`cookieGet`/`cookieSet`/`cookieRemove`（chrome.cookies + `@electron/remote` 双实现）、`setPrototypeOfLocalStorage`（给 localStorage 加 `getObject/setObject`）、`getLocalStorageValue`、`getParameterByName`、`smoothScrollTo`(歌词滚动)、`matchPlaylistFilter`(歌单内搜索：大小写不敏感 + 空白分词 AND)                                               |
-| `js/lyric_parser.js` | 344  | 歌词整形：LRC 解析、逐字歌词按格式分发挂载、翻译行配对、当前行选取与渐变进度 | `parseLyric`、`parseWordLyric`、`parseYrc`、`wordLyricProgress`、`findCurrentLyricLines`、`attachWordLyricLines`、`pairTranslations`、`parseTimedLines`、`normalizeLyricText`  |
+| `js/lyric_parser.js` | 519  | 歌词整形：LRC 解析、逐字歌词按格式分发对齐、一次产出 LRC 视图 / 逐字视图（逐字视图的翻译经 LRC 桥接）、当前行选取与渐变进度 | `parseLyric`、`parseWordLyric`、`parseYrc`、`wordLyricProgress`、`findCurrentLyricLines`、`attachWordLyricLines`、`pairTranslations`、`parseTimedLines`、`normalizeLyricText`  |
 | `js/bridge.js`     | 135  | UI↔ 播放器消息桥，定义 front/background 双协议                                                           | `hasBackgroundPlayer`（MV2 专有 API 的收敛点）、`getPlayerMode`（模式唯一推导处）、`getPlayer/getPlayerAsync`、`addPlayerListener`、`playerSendMessage`                                                                                                                                                                                                              |
 | `js/l1_player.js`  | 236  | 播放器门面，UI 唯一入口；`status` 只留播放列表/循环模式/播放态（音频状态不存快照，问 `getAudioState()`） | `window.l1Player`；音频状态 `getAudioState`（同步读，background 下判空回退）/`setVolume`/`adjustVolume`/`setMuted`/`toggleMuted`；其余 `play/pause/togglePlayPause/playById/loadById/seek/next/prev/random/setLoopMode/addTrack/insertTrack/removeTrack/addTracks/clearPlaylist/setNewPlaylist`；`connectPlayer`（恢复上次播放）；`injectDirectives`（6 个播放指令） |
 | `js/myplaylist.js` | 262  | 本地歌单 CRUD，纯 localStorage 实现，单例                                                                | `myplaylistFactory():262`；`show_myplaylist:25`、`get_playlist:52`、`create_myplaylist:205`、`add_track_to_myplaylist:148`、`insert_myplaylist_to_myplaylists:78`；键名映射 `getPlaylistObjectKey:16-24`                                                                                                                                                             |
@@ -555,7 +555,7 @@ UI 入口在 `listen1.html` 的 ng-click 绑定（`:884`、`:1258-1273`）。
 | 项       | 内容                                                                                                                             |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 包管理   | `package.json` 仅 devDependencies：eslint 7 + airbnb-base + prettier 8 + husky 4 + lint-staged 10                                |
-| 脚本     | `npm test` = `node --test --test-isolation=none "test/**/*.test.js"`（需 Node ≥ 22.8，vm 沙箱加载真实脚本，当前 113 例）          |
+| 脚本     | `npm test` = `node --test --test-isolation=none "test/**/*.test.js"`（需 Node ≥ 22.8，vm 沙箱加载真实脚本，当前 132 例）          |
 | ESLint   | `.eslintrc.json`：`ecmaVersion: 11`，继承 `airbnb-base` + `prettier`，关闭 `camelcase`、`linebreak-style`；忽略 `**/vendor/*.js` |
 | Prettier | `.prettierrc`：`singleQuote: true`、`trailingComma: "es5"`                                                                       |
 | 提交钩子 | husky pre-commit → lint-staged：非 vendor 的 `.js` 跑 `eslint --cache --fix`，`.js/.css/.md` 跑 `prettier --write`               |

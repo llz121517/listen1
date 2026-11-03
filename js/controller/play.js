@@ -60,6 +60,9 @@ angular.module('listenone').controller('PlayController', [
       nowplaying_track_id: -1,
     };
     $scope.lyricArray = [];
+    // 两种歌词视图由 parseLyric() 一次产出：关闭逐字用 LRC 视图，开启逐字用逐字视图
+    $scope.lyricLrcLines = [];
+    $scope.lyricWordLyricLines = null;
     $scope.lyricLineNumber = -1;
     // 当前歌词是否有翻译行：决定播放页“词/译”开关是否显示（见 hasLyricTranslationLines）
     $scope.hasLyricTranslation = false;
@@ -95,6 +98,29 @@ angular.module('listenone').controller('PlayController', [
         }
         $scope.staged_playlist.push({ ...song, stageId: `${song.id}_${i}` });
         i += 1;
+      }
+    };
+
+    // 当前歌词视图：开启逐字且这首歌有逐字数据时用逐字视图，否则用 LRC 视图
+    $scope.selectLyricLines = () =>
+      $scope.enableWordLyric && $scope.lyricWordLyricLines
+        ? $scope.lyricWordLyricLines
+        : $scope.lyricLrcLines;
+
+    // 换视图（切歌 / 开关逐字）：换数组、清掉旧行号与翻译高亮，滚回顶部，等 FRAME_UPDATE 重新定位。
+    // “词/译”开关的显隐也在这里重算：歌词是切歌之后异步取回的，只能按当前视图里真实的翻译行判定。
+    $scope.applyLyricLines = () => {
+      const lines = $scope.selectLyricLines();
+      if (lines === $scope.lyricArray) {
+        return;
+      }
+      $scope.lyricArray = lines;
+      $scope.lyricLineNumber = -1;
+      $scope.lyricLineNumberTrans = -1;
+      $scope.hasLyricTranslation = hasLyricTranslationLines(lines);
+      const lyricElement = document.querySelector('.lyric');
+      if (lyricElement) {
+        smoothScrollTo(lyricElement, 0, 300);
       }
     };
 
@@ -563,10 +589,9 @@ angular.module('listenone').controller('PlayController', [
             current.nowplaying_track_id = msg.data.currentPlaying.id;
             localStorage.setObject('player-settings', current);
             // update lyric
-            $scope.lyricArray = [];
-            $scope.lyricLineNumber = -1;
-            $scope.lyricLineNumberTrans = -1;
-            smoothScrollTo(document.querySelector('.lyric'), 0, 300);
+            $scope.lyricLrcLines = [];
+            $scope.lyricWordLyricLines = null;
+            $scope.applyLyricLines();
             const track = msg.data.currentPlaying;
             $rootScope.page_title = {
               title: track.title,
@@ -587,12 +612,10 @@ angular.module('listenone').controller('PlayController', [
                 $scope.hasLyricTranslation = false;
                 return;
               }
-              $scope.lyricArray = parseLyric(lyric, tlyric, wordLyric);
-              // 歌词在切歌之后才异步取回：开关的显隐只按这里解析出的真实翻译行判定，
-              // 切歌那一刻对应的是上一首歌曲的状态。
-              $scope.hasLyricTranslation = hasLyricTranslationLines(
-                $scope.lyricArray
-              );
+              const parsed = parseLyric(lyric, tlyric, wordLyric);
+              $scope.lyricLrcLines = parsed.lrcLines;
+              $scope.lyricWordLyricLines = parsed.wordLyricLines;
+              $scope.applyLyricLines();
             });
             $scope.lastTrackId = msg.data.currentPlaying.id;
             if (isElectron()) {
@@ -747,6 +770,8 @@ angular.module('listenone').controller('PlayController', [
     $scope.toggleWordLyric = () => {
       $scope.enableWordLyric = !$scope.enableWordLyric;
       localStorage.setObject('enable_word_lyric', $scope.enableWordLyric);
+      // 开启 / 关闭逐字会切换整份歌词视图：换数组并让当前行重新定位
+      $scope.applyLyricLines();
     };
 
     $scope.toggleLyricFloatingWindowTranslation = () => {
