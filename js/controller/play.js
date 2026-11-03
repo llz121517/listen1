@@ -2,7 +2,7 @@
 /* eslint-disable no-shadow */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable global-require */
-/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines */
+/* global angular notyf i18next MediaService l1Player hotkeys GithubClient isElectron require getLocalStorageValue getPlayer getPlayerAsync getPlayerMode addPlayerListener smoothScrollTo lastfm hasLyricTranslationLines parseLyric wordLyricProgress findCurrentLyricLines */
 
 function getCSSStringFromSetting(setting) {
   let { backgroundAlpha } = setting;
@@ -178,6 +178,18 @@ angular.module('listenone').controller('PlayController', [
         'enable_nowplaying_platform',
         false
       );
+      // 播放历史上报开关：默认关闭，仅对网易云曲目生效（见 js/play_history.js）
+      $scope.enablePlayHistorySync = getLocalStorageValue(
+        'enable_play_history_sync',
+        false
+      );
+      // 逐字歌词：默认开启，有逐字数据的行按词级时间渐变点亮；
+      // 旧开关 key（enable_yrc_lyric）读过就迁移到通用 key，老用户的选择不丢
+      const storedWordLyric = getLocalStorageValue('enable_word_lyric', null);
+      $scope.enableWordLyric =
+        storedWordLyric !== null
+          ? storedWordLyric
+          : getLocalStorageValue('enable_yrc_lyric', true);
 
       const defaultFloatWindowSetting = {
         fontSize: 20,
@@ -384,102 +396,6 @@ angular.module('listenone').controller('PlayController', [
       });
     });
 
-    function parseLyric(lyric, tlyric) {
-      const lines = lyric.split('\n');
-      let result = [];
-      const timeResult = [];
-
-      if (typeof tlyric !== 'string') {
-        tlyric = '';
-      }
-      const linesTrans = tlyric.split('\n');
-      const resultTrans = [];
-      const timeResultTrans = [];
-      if (tlyric === '') {
-        linesTrans.splice(0);
-      }
-
-      function rightPadding(str, length, padChar) {
-        const newstr = str + new Array(length - str.length + 1).join(padChar);
-        return newstr;
-      }
-
-      const process =
-        (result, timeResult, translationFlag) => (line, index) => {
-          const tagReg = /\[\D*:([^\]]+)\]/g;
-          const tagRegResult = tagReg.exec(line);
-          if (tagRegResult) {
-            const lyricObject = {};
-            lyricObject.seconds = 0;
-            [lyricObject.content] = tagRegResult;
-            result.push(lyricObject);
-            return;
-          }
-
-          const timeReg = /\[(\d{2,})\:(\d{2})(?:\.(\d{1,3}))?\]/g; // eslint-disable-line no-useless-escape
-
-          let timeRegResult = null;
-          // eslint-disable-next-line no-cond-assign
-          while ((timeRegResult = timeReg.exec(line)) !== null) {
-            const htmlUnescapes = {
-              '&amp;': '&',
-              '&lt;': '<',
-              '&gt;': '>',
-              '&quot;': '"',
-              '&#39;': "'",
-              '&apos;': "'",
-            };
-            timeResult.push({
-              content: line
-                .replace(/\[(\d{2,}):(\d{2})(?:\.(\d{1,3}))?\]/g, '')
-                .replace(
-                  /&(?:amp|lt|gt|quot|#39|apos);/g,
-                  (match) => htmlUnescapes[match]
-                ),
-              seconds:
-                parseInt(timeRegResult[1], 10) * 60 * 1000 + // min
-                parseInt(timeRegResult[2], 10) * 1000 + // sec
-                (timeRegResult[3]
-                  ? parseInt(rightPadding(timeRegResult[3], 3, '0'), 10)
-                  : 0), // microsec
-              translationFlag,
-              index,
-            });
-          }
-        };
-
-      lines.forEach(process(result, timeResult, false));
-      linesTrans.forEach(process(resultTrans, timeResultTrans, true));
-
-      // sort time line
-      result = timeResult.concat(timeResultTrans).sort((a, b) => {
-        const keyA = a.seconds;
-        const keyB = b.seconds;
-
-        // Compare the 2 dates
-        if (keyA < keyB) return -1;
-        if (keyA > keyB) return 1;
-        if (a.translationFlag !== b.translationFlag) {
-          if (a.translationFlag === false) {
-            return -1;
-          }
-          return 1;
-        }
-        if (a.index < b.index) return -1;
-        if (a.index > b.index) return 1;
-        return 0;
-      });
-      // disable tag info, because music provider always write
-      // tag info in lyric timeline.
-      // result.push.apply(result, timeResult);
-      // result = timeResult; // executed up there
-
-      for (let i = 0; i < result.length; i += 1) {
-        result[i].lineNumber = i;
-      }
-
-      return result;
-    }
     const mode = getPlayerMode();
 
     getPlayer(mode).setMode(mode);
@@ -532,17 +448,8 @@ angular.module('listenone').controller('PlayController', [
             // update lyric position
             if (!l1Player.status.playing.id) break;
             const currentSeconds = msg.data.pos;
-            let lastObject = null;
-            let lastObjectTrans = null;
-            $scope.lyricArray.forEach((lyric) => {
-              if (currentSeconds >= lyric.seconds / 1000) {
-                if (lyric.translationFlag !== true) {
-                  lastObject = lyric;
-                } else {
-                  lastObjectTrans = lyric;
-                }
-              }
-            });
+            const { line: lastObject, translation: lastObjectTrans } =
+              findCurrentLyricLines($scope.lyricArray, currentSeconds * 1000);
             if (
               lastObject &&
               lastObject.lineNumber !== $scope.lyricLineNumber
@@ -559,12 +466,10 @@ angular.module('listenone').controller('PlayController', [
                 lineElement.offsetTop - windowHeight / 2 + adjustOffset;
               smoothScrollTo(document.querySelector('.lyric'), offset, 500);
               $scope.lyricLineNumber = lastObject.lineNumber;
-              if (
-                lastObjectTrans &&
-                lastObjectTrans.lineNumber !== $scope.lyricLineNumberTrans
-              ) {
-                $scope.lyricLineNumberTrans = lastObjectTrans.lineNumber;
-              }
+              // 翻译行跟着当前原句走：这一句没有翻译就清掉，避免跳转后上一句的翻译仍然高亮
+              $scope.lyricLineNumberTrans = lastObjectTrans
+                ? lastObjectTrans.lineNumber
+                : -1;
               if (isElectron()) {
                 const { ipcRenderer } = require('electron');
                 const currentLyric =
@@ -581,6 +486,19 @@ angular.module('listenone').controller('PlayController', [
                   lyric: currentLyric,
                   tlyric: currentLyricTrans,
                 });
+              }
+            }
+
+            // 逐字歌词：每帧只给当前行的文字 span 写 CSS 变量做渐变推进，不重建数组、不额外触发 digest
+            if ($scope.enableWordLyric && lastObject && lastObject.karaoke) {
+              const karaokeElement = document.querySelector(
+                `.playsong-detail .detail-songinfo .lyric p[data-line="${lastObject.lineNumber}"] .karaoke-text`
+              );
+              if (karaokeElement) {
+                karaokeElement.style.setProperty(
+                  '--word-lyric-p',
+                  wordLyricProgress(lastObject, currentSeconds * 1000).toFixed(4)
+                );
               }
             }
 
@@ -669,12 +587,12 @@ angular.module('listenone').controller('PlayController', [
               track.lyric_url,
               track.tlyric_url
             ).success((res) => {
-              const { lyric, tlyric } = res;
+              const { lyric, tlyric, wordLyric } = res;
               if (!lyric) {
                 $scope.hasLyricTranslation = false;
                 return;
               }
-              $scope.lyricArray = parseLyric(lyric, tlyric);
+              $scope.lyricArray = parseLyric(lyric, tlyric, wordLyric);
               // 歌词在切歌之后才异步取回：开关的显隐只按这里解析出的真实翻译行判定，
               // 切歌那一刻对应的是上一首歌曲的状态。
               $scope.hasLyricTranslation = hasLyricTranslationLines(
@@ -815,12 +733,25 @@ angular.module('listenone').controller('PlayController', [
       });
     });
 
+    $scope.togglePlayHistorySync = () => {
+      $scope.enablePlayHistorySync = !$scope.enablePlayHistorySync;
+      localStorage.setObject(
+        'enable_play_history_sync',
+        $scope.enablePlayHistorySync
+      );
+    };
+
     $scope.toggleLyricTranslation = () => {
       $scope.enableLyricTranslation = !$scope.enableLyricTranslation;
       localStorage.setObject(
         'enable_lyric_translation',
         $scope.enableLyricTranslation
       );
+    };
+
+    $scope.toggleWordLyric = () => {
+      $scope.enableWordLyric = !$scope.enableWordLyric;
+      localStorage.setObject('enable_word_lyric', $scope.enableWordLyric);
     };
 
     $scope.toggleLyricFloatingWindowTranslation = () => {

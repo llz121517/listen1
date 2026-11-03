@@ -179,6 +179,24 @@ const MediaService = {
     return provider.lyric(url);
   },
 
+  /**
+   * 上报一条播放记录（目前仅网易云支持，见 js/play_history.js）。
+   * action: 'startplay' 开播 | 'play' 离开（end 说明原因）
+   */
+  submitPlayHistory(track, playedSeconds, end, action = 'play') {
+    const provider = getProviderByItemId(track.id);
+    if (!provider || typeof provider.submit_play_history !== 'function') {
+      return null;
+    }
+    const url = `/submit_play_history?${queryStringify({
+      track_id: track.id,
+      action,
+      time: Math.round(playedSeconds || 0),
+      end,
+    })}`;
+    return provider.submit_play_history(url);
+  },
+
   showFavPlaylist() {
     return myplaylist.show_myplaylist('favorite');
   },

@@ -1,9 +1,9 @@
 # 播放器静音 / 音量状态收敛
 
 - 日期：2026-10-07（当日经独立子代理审查后修订）
-- 状态：设计已确认并修订，待实施
+- 状态：已实现（2026-10-07，见 CHANGELOG `[2.2.0]`）；归档于 `docs/archive/`
 - 影响文件：`js/player_thread.js`、`js/l1_player.js`、`js/controller/play.js`、`js/app.js`、`docs/INDEX.md`（+ `CHANGELOG.md`）；`listen1.html` 与 CSS **不动**
-- 相关约定：[docs/CONVENTIONS.md](../../CONVENTIONS.md)（§1 行号纪律、§3 CHANGELOG、§7 SemVer、§9 提交范围）
+- 相关约定：[docs/CONVENTIONS.md](../CONVENTIONS.md)（§1 行号纪律、§3 CHANGELOG、§7 SemVer、§9 提交范围）
 
 ## 1. 背景
 

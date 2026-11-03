@@ -88,7 +88,7 @@ describe('随机播放的半随机轮长', () => {
 
     for (let i = 0; i < 4000; i += 1) {
       player.skip('next');
-      const { _random_len: roundLength } = player;
+      const { _random_len: roundLength } = player.playlistModel;
 
       assert.ok(
         Number.isInteger(roundLength) &&
@@ -98,7 +98,7 @@ describe('随机播放的半随机轮长', () => {
       );
 
       // steps 回到 1 表示刚开新一轮（正向走位里它只递增）
-      if (player._random_steps === 1) {
+      if (player.playlistModel._random_steps === 1) {
         playedInRound = new Set();
       }
       assert.ok(
