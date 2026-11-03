@@ -1131,6 +1131,31 @@ ul.detail-songlist li .desc div.title:hover{
   opacity: 1;
   font-size: 26px;
 }
+/* 逐字歌词（网易云 YRC）：当前行按词级时间从左往右渐变点亮。
+   --yrc-p 是 0~1 的推进比例，由 js/controller/play.js 在 FRAME_UPDATE 里写；
+   注册成 <number> 才能让 transition 生效（交给浏览器补间，不用自建 rAF 循环）。
+   渐变挂在行内 span 上而不是 <p> 上：inline 盒宽度就是文字宽度，短句不会因为
+   整行盒子留白而“提前唱完”。已唱用正文色、未唱是同色 35% 透明，配色只走变量。 */
+@property --yrc-p {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+.playsong-detail .detail-songinfo .lyric p.karaoke.highlight .karaoke-text {
+  background-image: linear-gradient(
+    to right,
+    var(--text-default-color) 0%,
+    var(--text-default-color) calc(var(--yrc-p, 0) * 100%),
+    color-mix(in srgb, var(--text-default-color) 35%, transparent)
+      calc(var(--yrc-p, 0) * 100%),
+    color-mix(in srgb, var(--text-default-color) 35%, transparent) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  transition: --yrc-p 0.12s linear;
+}
 ul.detail-songlist {
   position: relative;
 }

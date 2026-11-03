@@ -88,6 +88,7 @@
     <script type="text/javascript" src="js/vendor/lru-cache.min.js"></script>
 
     <script type="text/javascript" src="js/lowebutil.js"></script>
+    <script type="text/javascript" src="js/lyric_parser.js"></script>
     <script type="text/javascript" src="js/github.js"></script>
     <script type="text/javascript" src="js/lastfm.js"></script>
     <script type="text/javascript" src="js/provider/xiami.js"></script>
@@ -1275,6 +1276,26 @@
                                 <span ng-show="enableLyricTranslation"></span
                                 >{{_SHOW_LYRIC_TRANSLATION}}
                               </div>
+                              <!-- 网易云逐字（YRC）歌词：有逐字数据的行按词级时间渐变点亮，
+                                   没有数据时回退整行高亮。解析见 js/lyric_parser.js 的 parseLyric() -->
+                              <div class="shortcut">
+                                <svg
+                                  class="feather"
+                                  ng-show="!enableYrcLyric"
+                                  ng-click="toggleYrcLyric()"
+                                >
+                                  <use href="#square"></use>
+                                </svg>
+                                <svg
+                                  class="feather"
+                                  ng-show="enableYrcLyric"
+                                  ng-click="toggleYrcLyric()"
+                                >
+                                  <use href="#check-square"></use>
+                                </svg>
+                                <span ng-show="enableYrcLyric"></span
+                                >{{_SHOW_YRC_LYRIC}}
+                              </div>
                               <div class="shortcut" ng-if="!isChrome">
                                 <svg
                                   class="feather"
@@ -2047,9 +2068,9 @@
                         <p
                           ng-repeat="line in lyricArray track by $index"
                           data-line="{{line.lineNumber}}"
-                          ng-class="{ 'highlight': (line.lineNumber == lyricLineNumber) || (line.lineNumber == lyricLineNumberTrans) , hide: (line.translationFlag && !enableLyricTranslation), translate: line.translationFlag}"
+                          ng-class="{ 'highlight': (line.lineNumber == lyricLineNumber) || (line.lineNumber == lyricLineNumberTrans) , hide: (line.translationFlag && !enableLyricTranslation), translate: line.translationFlag, karaoke: line.karaoke && enableYrcLyric}"
                         >
-                          {{ line.content }}
+                          <span class="karaoke-text">{{ line.content }}</span>
                         </p>
                         <div class="placeholder"></div>
                       </div>

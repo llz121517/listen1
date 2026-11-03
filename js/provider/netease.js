@@ -586,10 +586,12 @@ class netease {
     // use chrome extension to modify referer.
     const target_url = 'https://music.163.com/weapi/song/lyric?csrf_token=';
     const csrf = '';
+    // yv: -1 才会返回 yrc 逐字歌词（只带 lv/tv 时响应里没有这个字段）
     const d = {
       id: track_id,
       lv: -1,
       tv: -1,
+      yv: -1,
       csrf_token: csrf,
     };
     const data = this.weapi(d);
@@ -599,6 +601,7 @@ class netease {
           const { data: res_data } = response;
           let lrc = '';
           let tlrc = '';
+          let yrc = '';
           if (res_data.lrc != null) {
             lrc = res_data.lrc.lyric;
           }
@@ -607,9 +610,14 @@ class netease {
             tlrc = res_data.tlyric.lyric.replace(/(|\\)/g, '');
             tlrc = tlrc.replace(/[\u2005]+/g, ' ');
           }
+          // 逐字歌词：不是每首歌都有，没有时保持空串，由播放页回退到整行歌词
+          if (res_data.yrc != null && res_data.yrc.lyric != null) {
+            yrc = res_data.yrc.lyric;
+          }
           return fn({
             lyric: lrc,
             tlyric: tlrc,
+            yrc,
           });
         });
       },
