@@ -310,21 +310,27 @@ class kugou {
 
     const target_url = `https://m.kugou.com/app/i/getSongInfo.php?cmd=playInfo&hash=${track_id}`;
 
-    axios.get(target_url).then((response) => {
-      const { data: info } = response;
+    // 失败必须回调 failure：上层自动切源拿不到回调就会永久挂起，
+    // 播放器停在等待地址的会话上既不提示也不跳歌。
+    axios
+      .get(target_url)
+      .then((response) => {
+        const { data: info } = response;
 
-      const { url } = info;
+        const { url } = info || {};
 
-      if (url === '') {
-        return failure({});
-      }
+        // 没有 url 同样是「这首歌放不了」，不能当成成功（空地址会一路传到播放器）
+        if (!url) {
+          return failure({});
+        }
 
-      return success({
-        url,
-        bitrate: `${info.bitRate}kbps`,
-        platform: 'kugou',
-      });
-    });
+        return success({
+          url,
+          bitrate: `${info.bitRate}kbps`,
+          platform: 'kugou',
+        });
+      })
+      .catch(() => failure({}));
   }
 
   static lyric(url) {

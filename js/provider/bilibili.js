@@ -344,38 +344,120 @@ class bilibili {
         bvid = trackIdCheck[0].slice('bitrack_v_'.length);
       }
       const target_url = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`;
-      return axios.get(target_url).then((response) => {
-        let { cid } = response.data.data.pages[0];
-        if (trackIdCheck.length > 1) {
-          [, cid] = trackIdCheck;
-        }
-        const target_url2 = `http://api.bilibili.com/x/player/playurl?fnval=16&bvid=${bvid}&cid=${cid}`;
-        axios.get(target_url2).then((response2) => {
-          if (response2.data.data.dash.audio.length > 0) {
-            const url = response2.data.data.dash.audio[0].baseUrl;
-            sound.url = url;
-            sound.platform = 'bilibili';
-            success(sound);
-          } else {
-            failure(sound);
+      return axios
+        .get(target_url)
+        .then((response) => {
+          let { cid } = response.data.data.pages[0];
+          if (trackIdCheck.length > 1) {
+            [, cid] = trackIdCheck;
           }
-        });
-      });
+          const target_url2 = `http://api.bilibili.com/x/player/playurl?fnval=16&bvid=${bvid}&cid=${cid}`;
+          axios
+            .get(target_url2)
+            .then((response2) => {
+              // dash.audio 在风控 / 稿件被删时可能整体缺失，直接取值会抛异常，
+              // 回调就再也不会发生，上层只能一直等地址。
+              const audio =
+                response2.data &&
+                response2.data.data &&
+                response2.data.data.dash &&
+                response2.data.data.dash.audio;
+              if (audio && audio.length > 0) {
+                const url = audio[0].baseUrl;
+                sound.url = url;
+                sound.platform = 'bilibili';
+                success(sound);
+              } else {
+                failure(sound);
+              }
+            })
+            .catch(() => failure(sound));
+        })
+        .catch(() => failure(sound));
     }
     const sound = {};
     const song_id = track.id.slice('bitrack_'.length);
     const target_url = `https://www.bilibili.com/audio/music-service-c/web/url?sid=${song_id}`;
-    return axios.get(target_url).then((response) => {
-      const { data } = response;
-      if (data.code === 0) {
-        [sound.url] = data.data.cdns;
-        sound.platform = 'bilibili';
+    return axios
+      .get(target_url)
+      .then((response) => {
+        const { data } = response;
+        if (data.code === 0) {
+          [sound.url] = data.data.cdns;
+          sound.platform = 'bilibili';
 
-        success(sound);
-      } else {
-        failure(sound);
+          success(sound);
+        } else {
+          failure(sound);
+        }
+      })
+      .catch(() => failure(sound));
+  }
+
+  /**
+   * 确保 buvid3 是一枚「真实」的设备指纹。
+   *
+   * 上游用 value: '0' 占位，但 B 站风控会校验 buvid3 的真伪，占位值照样回 412。
+   * 这里先查已存在的 cookie，只在缺失、或仍是占位值 '0' 时，向 finger/spi 取一次
+   * 真实的 b_3 写入（b_3 即 buvid3，b_4 即 buvid4）。
+   *
+   * 任何一步失败都必须回调：这个回调是上层自动切源的唯一信号，丢了会让
+   * Promise.all 永久不 settle，播放器静默停在等待地址的会话上。
+   */
+  static ensure_buvid3(callback) {
+    const domain = 'https://api.bilibili.com';
+    const cookieName = 'buvid3';
+    const expire =
+      (new Date().getTime() + 1e3 * 60 * 60 * 24 * 365 * 100) / 1000;
+
+    // 回调只许发生一次：下面的超时兜底与正常路径可能同时走到。
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+
+    const write_cookie = (value) => {
+      cookieSet(
+        {
+          url: domain,
+          name: cookieName,
+          value,
+          expirationDate: expire,
+          // SameSite=None 必须 Secure，否则 Chrome 拒绝写入并报
+          // "Failed to parse or set cookie named \"buvid3\""。
+          sameSite: 'no_restriction',
+          secure: true,
+        },
+        () => finish()
+      );
+    };
+
+    const fetch_and_write = () => {
+      axios
+        .get('https://api.bilibili.com/x/frontend/finger/spi')
+        .then((response) => {
+          const payload = response.data && response.data.data;
+          // 取不到真实指纹时仍写占位值：带上总比空着强，而且必须继续回调
+          write_cookie((payload && payload.b_3) || '0');
+        })
+        .catch(() => write_cookie('0'));
+    };
+
+    cookieGet({ url: domain, name: cookieName }, (cookie) => {
+      const existing = cookie && cookie.value;
+      // 已有真实值就不再打扰接口；占位值 '0' 视为没有，重新取一次
+      if (existing && existing !== '0') {
+        finish();
+        return;
       }
+      fetch_and_write();
     });
+
+    // 兜底：cookie 读写是扩展 API，异常情况下可能整个不回调。宁可带着
+    // 现有 cookie 去搜（最坏也就是 412 回空结果），也不能让上层永久等待。
+    setTimeout(finish, 3000);
   }
 
   static search(url) {
@@ -388,34 +470,31 @@ class bilibili {
           keyword
         )}&category_id=&search_type=video&dynamic_offset=0&preload=true&com2co=true`;
 
-        const domain = `https://api.bilibili.com`;
-        const cookieName = 'buvid3';
-        const expire =
-          (new Date().getTime() + 1e3 * 60 * 60 * 24 * 365 * 100) / 1000;
+        // 这个回调是上层自动切源的唯一信号：请求失败 / 21x 风控都只是「没搜到」，
+        // 必须回一个空结果，否则 Promise.all 永远不 settle，播放器会静默停在
+        // 等待地址的会话上（既不提示版权、也不跳到下一首）。
+        const respondEmpty = () => fn({ result: [], total: 0 });
 
-        cookieSet(
-          {
-            url: domain,
-            name: cookieName,
-            value: '0',
-            expirationDate: expire,
-            sameSite: 'no_restriction',
-          },
-          () => {
-            axios
-              .get(target_url, { withCredentials: true })
-              .then((response) => {
-                const result = response.data.data.result.map((song) =>
-                  this.bi_convert_song2(song)
-                );
-                const total = response.data.data.numResults;
-                return fn({
-                  result,
-                  total,
-                });
+        bilibili.ensure_buvid3(() => {
+          axios
+            .get(target_url, { withCredentials: true })
+            .then((response) => {
+              const payload = response.data && response.data.data;
+              // 风控（412 / -412 / -352）会返回空 data，取 result 会抛异常
+              if (!payload || !Array.isArray(payload.result)) {
+                return respondEmpty();
+              }
+              const result = payload.result.map((song) =>
+                this.bi_convert_song2(song)
+              );
+              const total = payload.numResults;
+              return fn({
+                result,
+                total,
               });
-          }
-        );
+            })
+            .catch(respondEmpty);
+        });
       },
     };
   }

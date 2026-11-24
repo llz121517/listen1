@@ -374,34 +374,39 @@ class qq {
             },
           },
         };
-        axios.post(target_url, query).then((response) => {
-          const { data } = response;
-          let result = [];
-          let total = 0;
-          if (searchType === '0') {
-            result = data.req.data.body.song.list.map((item) =>
-              this.qq_convert_song2(item)
-            );
-            total = data.req.data.meta.sum;
-          } else if (searchType === '1') {
-            result = data.req.data.body.songlist.list.map((info) => ({
-              id: `qqplaylist_${info.dissid}`,
-              title: this.htmlDecode(info.dissname),
-              source: 'qq',
-              source_url: `https://y.qq.com/n/ryqq/playlist/${info.dissid}`,
-              img_url: info.imgurl,
-              url: `qqplaylist_${info.dissid}`,
-              author: this.UnicodeToAscii(info.creator.name),
-              count: info.song_count,
-            }));
-            total = data.req.data.meta.sum;
-          }
-          return fn({
-            result,
-            total,
-            type: searchType,
-          });
-        });
+        // 失败必须回空结果：自动切源把每个 search 包成 Promise，不回调就永久挂起。
+        const respondEmpty = () => fn({ result: [], total: 0, type: searchType });
+        axios
+          .post(target_url, query)
+          .then((response) => {
+            const { data } = response;
+            let result = [];
+            let total = 0;
+            if (searchType === '0') {
+              result = data.req.data.body.song.list.map((item) =>
+                this.qq_convert_song2(item)
+              );
+              total = data.req.data.meta.sum;
+            } else if (searchType === '1') {
+              result = data.req.data.body.songlist.list.map((info) => ({
+                id: `qqplaylist_${info.dissid}`,
+                title: this.htmlDecode(info.dissname),
+                source: 'qq',
+                source_url: `https://y.qq.com/n/ryqq/playlist/${info.dissid}`,
+                img_url: info.imgurl,
+                url: `qqplaylist_${info.dissid}`,
+                author: this.UnicodeToAscii(info.creator.name),
+                count: info.song_count,
+              }));
+              total = data.req.data.meta.sum;
+            }
+            return fn({
+              result,
+              total,
+              type: searchType,
+            });
+          })
+          .catch(respondEmpty);
       },
     };
   }
@@ -480,24 +485,32 @@ class qq {
         cv: 0,
       },
     };
-    axios.post(target_url, reqData).then((response) => {
-      const { data } = response;
-      const { purl } = data.req_1.data.midurlinfo[0];
+    // 失败必须回调 failure：上层自动切源拿不到回调就会永久挂起，
+    // 播放器停在等待地址的会话上既不提示也不跳歌。
+    axios
+      .post(target_url, reqData)
+      .then((response) => {
+        const { data } = response;
+        // 风控 / 版权限制时 req_1 可能整体缺失，直接取值会抛异常导致回调丢失
+        const midurlinfo =
+          data && data.req_1 && data.req_1.data && data.req_1.data.midurlinfo;
+        const purl = midurlinfo && midurlinfo[0] ? midurlinfo[0].purl : '';
 
-      if (purl === '') {
-        // vip
-        failure(sound);
-        return;
-      }
-      const url = data.req_1.data.sip[0] + purl;
-      sound.url = url;
-      const prefix = purl.slice(0, 4);
-      const found = Object.values(fileConfig).filter((i) => i.s === prefix);
-      sound.bitrate = found.length > 0 ? found[0].bitrate : '';
-      sound.platform = 'qq';
+        if (!purl) {
+          // vip / 无版权
+          failure(sound);
+          return;
+        }
+        const url = data.req_1.data.sip[0] + purl;
+        sound.url = url;
+        const prefix = purl.slice(0, 4);
+        const found = Object.values(fileConfig).filter((i) => i.s === prefix);
+        sound.bitrate = found.length > 0 ? found[0].bitrate : '';
+        sound.platform = 'qq';
 
-      success(sound);
-    });
+        success(sound);
+      })
+      .catch(() => failure(sound));
   }
 
   // eslint-disable-next-line no-unused-vars
