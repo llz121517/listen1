@@ -16,6 +16,7 @@
  */
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const vm = require('node:vm');
 const { describe, test } = require('node:test');
 const assert = require('node:assert');
@@ -58,30 +59,80 @@ const TRACKS = {
 
 const SEARCH_URL = '/search?keywords=test&curpage=1&type=0';
 
-/** 所有请求都 reject 的 axios：模拟 412 / 断网。 */
+/**
+ * 所有请求都 reject 的 axios：模拟 412 / 断网。
+ *
+ * 注意：bilibili 的 `fetch_wbi_key()` 把 axios 当**函数**调用（`axios({url})`），
+ * 所以替身必须同时可调用、又带 `.get` / `.post`，否则测的就不是被测代码的行为。
+ */
 function failingAxios() {
   const reject = () =>
     Promise.reject(new Error('Request failed with status code 412'));
-  const instance = {
-    get: reject,
-    post: reject,
-    create: () => instance,
-    interceptors: { request: { use: () => {} }, response: { use: () => {} } },
-    defaults: {},
+  const instance = function axiosInstance() {
+    return reject();
   };
+  instance.get = reject;
+  instance.post = reject;
+  instance.create = () => instance;
+  instance.interceptors = {
+    request: { use: () => {} },
+    response: { use: () => {} },
+  };
+  instance.defaults = {};
   return instance;
 }
 
 /** 200 但响应体为空的 axios：模拟风控返回空 data。 */
 function emptyBodyAxios() {
   const respond = () => Promise.resolve({ data: {} });
-  const instance = {
-    get: respond,
-    post: respond,
-    create: () => instance,
-    interceptors: { request: { use: () => {} }, response: { use: () => {} } },
-    defaults: {},
+  const instance = function axiosInstance() {
+    return Promise.resolve({ data: {} });
   };
+  instance.get = respond;
+  instance.post = respond;
+  instance.create = () => instance;
+  instance.interceptors = {
+    request: { use: () => {} },
+    response: { use: () => {} },
+  };
+  instance.defaults = {};
+  return instance;
+}
+
+/**
+ * 只让「搜索本身」失败的 axios：nav（wbi key）与 finger/spi 正常，
+ * 用来隔离验证 search 的签名请求行为。
+ */
+function searchFailsAxios(recorder) {
+  const navBody = {
+    data: {
+      data: {
+        wbi_img: {
+          img_url:
+            'https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png',
+          sub_url:
+            'https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png',
+        },
+      },
+    },
+  };
+  const handle = (url, options) => {
+    if (recorder) recorder.push({ url, options });
+    const target = String(url);
+    if (target.includes('/x/web-interface/nav')) {
+      return Promise.resolve(navBody);
+    }
+    if (target.includes('finger/spi')) {
+      return Promise.resolve({ data: { data: { b_3: 'REAL-B3' } } });
+    }
+    // 搜索接口 412
+    return Promise.reject(new Error('Request failed with status code 412'));
+  };
+  const instance = function axiosInstance(config) {
+    return handle(config.url, config);
+  };
+  instance.get = handle;
+  instance.post = handle;
   return instance;
 }
 
@@ -243,7 +294,9 @@ describe('provider 契约：search 失败时必须回调（自动切源依赖它
   ['kugou', 'kuwo', 'qq', 'migu', 'taihe', 'netease', 'bilibili'].forEach(
     (name) => {
       test(`${name}：请求失败时回空结果`, async () => {
-        const provider = loadProvider(name, failingAxios());
+        // bilibili 的搜索要先拿 wbi key，用只让搜索失败的 stub 才测得到 search 本身
+        const axios = name === 'bilibili' ? searchFailsAxios() : failingAxios();
+        const provider = loadProvider(name, axios);
         const outcome = await expectCallback(name, 'search', (ok, fail) =>
           provider.search(SEARCH_URL).success(() => ok('success', fail))
         );
@@ -253,10 +306,62 @@ describe('provider 契约：search 失败时必须回调（自动切源依赖它
   );
 });
 
+describe('bilibili 搜索：必须带 wbi 签名', () => {
+  test('搜索请求带 w_rid / wts 且要求带 cookie', async () => {
+    // 复刻 forge.md5，让签名可被独立复算
+    const forge = {
+      md5: {
+        create: () => {
+          const chunks = [];
+          const api = {
+            update(value) {
+              chunks.push(Buffer.from(String(value), 'utf8'));
+              return api;
+            },
+            digest() {
+              return {
+                toHex: () =>
+                  crypto
+                    .createHash('md5')
+                    .update(Buffer.concat(chunks))
+                    .digest('hex'),
+              };
+            },
+          };
+          return api;
+        },
+      },
+      util: { encodeUtf8: (text) => text },
+    };
+
+    const requests = [];
+    const provider = loadProvider('bilibili', searchFailsAxios(requests), {
+      forge,
+    });
+    provider.__sandbox.window.forge = forge;
+
+    await expectCallback('bilibili', 'search（wbi）', (ok) =>
+      provider.search(SEARCH_URL).success(() => ok('success'))
+    );
+
+    const searchRequest = requests.find((request) =>
+      String(request.url).includes('/x/web-interface/search/type')
+    );
+    assert.ok(searchRequest, '应当发出搜索请求');
+    assert.match(searchRequest.url, /[?&]w_rid=[a-f0-9]{32}/, '必须带 w_rid');
+    assert.match(searchRequest.url, /[?&]wts=\d+/, '必须带 wts');
+    assert.strictEqual(
+      searchRequest.options && searchRequest.options.withCredentials,
+      true,
+      '还需要带上 buvid3 cookie，两者缺一都会 412'
+    );
+  });
+});
+
 describe('provider 契约：cookie 读写异常时也不能挂死', () => {
   test('bilibili：cookieSet 永不回调时，search 仍会给出结果（靠兜底）', async () => {
     // cookieSet 故意永不回调，模拟扩展 API 静默失败
-    const provider = loadProvider('bilibili', emptyBodyAxios(), {
+    const provider = loadProvider('bilibili', searchFailsAxios(), {
       cookieSet: () => {},
     });
 

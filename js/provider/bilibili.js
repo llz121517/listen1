@@ -89,12 +89,12 @@ class bilibili {
     });
   }
 
-  static wrap_wbi_request(url, params) {
+  static wrap_wbi_request(url, params, options) {
     return bilibili
       .enc_wbi(params)
       .then((query_string) => {
         const target_url = `${url}?${query_string}`;
-        return axios.get(target_url);
+        return axios.get(target_url, options);
       })
       .catch(() => {
         // 失败时进行一次清空 wbi_key 后的重试，避免因为 wbi_key 过期导致的错误
@@ -103,7 +103,7 @@ class bilibili {
           .enc_wbi(params)
           .then((query_string) => {
             const target_url = `${url}?${query_string}`;
-            return axios.get(target_url);
+            return axios.get(target_url, options);
           })
           .catch(() => undefined);
       });
@@ -466,9 +466,25 @@ class bilibili {
         const keyword = getParameterByName('keywords', url);
         const curpage = getParameterByName('curpage', url);
 
-        const target_url = `https://api.bilibili.com/x/web-interface/search/type?__refresh__=true&_extra=&context=&page=${curpage}&page_size=42&platform=pc&highlight=1&single_column=0&keyword=${encodeURIComponent(
-          keyword
-        )}&category_id=&search_type=video&dynamic_offset=0&preload=true&com2co=true`;
+        // 搜索接口现在同时要「真实 buvid3」和「wbi 签名」：只带 cookie 不签名时
+        // 前几次能过、之后就开始回 412（风控对未签名请求的容忍额度很小），
+        // 表现就是「第一次搜索可用，切到别的页面再回来就 412」。
+        const search_params = {
+          __refresh__: 'true',
+          _extra: '',
+          context: '',
+          page: curpage,
+          page_size: 42,
+          platform: 'pc',
+          highlight: 1,
+          single_column: 0,
+          keyword,
+          category_id: '',
+          search_type: 'video',
+          dynamic_offset: 0,
+          preload: 'true',
+          com2co: 'true',
+        };
 
         // 这个回调是上层自动切源的唯一信号：请求失败 / 21x 风控都只是「没搜到」，
         // 必须回一个空结果，否则 Promise.all 永远不 settle，播放器会静默停在
@@ -476,9 +492,17 @@ class bilibili {
         const respondEmpty = () => fn({ result: [], total: 0 });
 
         bilibili.ensure_buvid3(() => {
-          axios
-            .get(target_url, { withCredentials: true })
+          bilibili
+            .wrap_wbi_request(
+              'https://api.bilibili.com/x/web-interface/search/type',
+              search_params,
+              { withCredentials: true }
+            )
             .then((response) => {
+              // wrap_wbi_request 两次尝试都失败时会 resolve undefined
+              if (!response) {
+                return respondEmpty();
+              }
               const payload = response.data && response.data.data;
               // 风控（412 / -412 / -352）会返回空 data，取 result 会抛异常
               if (!payload || !Array.isArray(payload.result)) {
