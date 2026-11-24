@@ -73,7 +73,9 @@ class qq {
   }
 
   static qq_get_image_url(qqimgid, img_type) {
-    if (qqimgid == null) {
+    // 空字符串同样要拦：只判 null 会拼出 `T002R300x300M000.jpg` 这种空封面地址，
+    // 请求固定 404（控制台里那条 y.gtimg.cn/.../T002R300x300M000.jpg 404）。
+    if (!qqimgid) {
       return '';
     }
     let category = '';
@@ -380,25 +382,34 @@ class qq {
           .post(target_url, query)
           .then((response) => {
             const { data } = response;
+            // 搜索接口在未登录 / 被风控时会回 req.code=2001 且 body 为空结构，
+            // 直接取 data.req.data.body.song.list 会抛异常，回调就丢了。
+            const reqData = data && data.req && data.req.data;
+            const body = (reqData && reqData.body) || {};
+            const meta = (reqData && reqData.meta) || {};
             let result = [];
             let total = 0;
             if (searchType === '0') {
-              result = data.req.data.body.song.list.map((item) =>
-                this.qq_convert_song2(item)
-              );
-              total = data.req.data.meta.sum;
+              // 歌曲搜索现在要求登录态，未登录时服务端只回空 list（code=2001），
+              // 这里当「没搜到」处理，让自动切源继续试下一个源。
+              const songs = (body.song && body.song.list) || [];
+              result = songs.map((item) => this.qq_convert_song2(item));
+              total = meta.sum || 0;
             } else if (searchType === '1') {
-              result = data.req.data.body.songlist.list.map((info) => ({
+              const playlists = (body.songlist && body.songlist.list) || [];
+              result = playlists.map((info) => ({
                 id: `qqplaylist_${info.dissid}`,
                 title: this.htmlDecode(info.dissname),
                 source: 'qq',
                 source_url: `https://y.qq.com/n/ryqq/playlist/${info.dissid}`,
                 img_url: info.imgurl,
                 url: `qqplaylist_${info.dissid}`,
-                author: this.UnicodeToAscii(info.creator.name),
+                author: this.UnicodeToAscii(
+                  (info.creator && info.creator.name) || ''
+                ),
                 count: info.song_count,
               }));
-              total = data.req.data.meta.sum;
+              total = meta.sum || 0;
             }
             return fn({
               result,

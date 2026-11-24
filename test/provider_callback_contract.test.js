@@ -1,3 +1,4 @@
+/* global structuredClone */
 /**
  * 守卫测试：**任何 provider 在失败时都必须回调**。
  *
@@ -186,6 +187,23 @@ function createStubForge() {
   };
 }
 
+/** 固定返回指定响应体的 axios：用来复刻服务端的异常 / 风控返回。 */
+function responseAxios(payload) {
+  const respond = () => Promise.resolve(payload);
+  const instance = function axiosInstance() {
+    return Promise.resolve(payload);
+  };
+  instance.get = respond;
+  instance.post = respond;
+  instance.create = () => instance;
+  instance.interceptors = {
+    request: { use: () => {} },
+    response: { use: () => {} },
+  };
+  instance.defaults = {};
+  return instance;
+}
+
 /** 在 vm 沙箱里加载真实 provider 文件，补上浏览器全局。 */
 function loadProvider(name, axios, overrides = {}) {
   const file = PROVIDERS[name];
@@ -355,6 +373,86 @@ describe('bilibili 搜索：必须带 wbi 签名', () => {
       true,
       '还需要带上 buvid3 cookie，两者缺一都会 412'
     );
+  });
+});
+
+describe('QQ 搜索：未登录 / 风控响应', () => {
+  test('req.code=2001 且 body 为空结构时回空结果，不抛异常', async () => {
+    // 真实响应：歌曲列表为空、body 是空结构、feedbackURL 指向登录页
+    const throttleBody = {
+      data: {
+        code: 0,
+        req: {
+          code: 2001,
+          data: {
+            body: {
+              song: { list: [] },
+              songlist: { list: [] },
+            },
+            code: 0,
+            feedbackURL:
+              'https://y.qq.com/wk_v17/common_login.html#/login?QQappid=100497308',
+            meta: { sum: 0 },
+          },
+        },
+      },
+    };
+    const provider = loadProvider('qq', responseAxios(throttleBody));
+
+    const direct = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('没回调')), 500);
+      provider.search(SEARCH_URL).success((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      });
+    });
+    assert.deepStrictEqual(structuredClone(direct.result), []);
+    assert.strictEqual(direct.total, 0);
+  });
+
+  test('body 整体缺失时也只回空结果', async () => {
+    // data 里连 req 都没有。防御是双保险：即使某天有人删掉末尾的 .catch，
+    // 这里也不该抛异常（旧写法 `data.req.data.body.song.list` 会直接抛 TypeError）。
+    const provider = loadProvider('qq', responseAxios({ data: {} }));
+
+    const direct = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('没回调')), 500);
+      provider.search(SEARCH_URL).success((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      });
+    });
+    // vm 沙箱里的数组原型来自另一个 realm，转回当前 realm 再比较
+    assert.deepStrictEqual(structuredClone(direct.result), []);
+    assert.strictEqual(direct.total, 0);
+  });
+});
+
+describe('QQ 封面 URL', () => {
+  test('album.mid 为空时不拼出空封面地址（避免 404）', () => {
+    const provider = loadProvider('qq', emptyBodyAxios());
+    assert.strictEqual(
+      provider.qq_get_image_url('', 'album'),
+      '',
+      '空 mid 必须回空串，不能拼成 T002R300x300M000.jpg'
+    );
+    assert.strictEqual(provider.qq_get_image_url(null, 'album'), '');
+    assert.strictEqual(provider.qq_get_image_url(undefined, 'album'), '');
+    assert.strictEqual(
+      provider.qq_get_image_url('001abc', 'album'),
+      'https://y.gtimg.cn/music/photo_new/T002R300x300M000001abc.jpg'
+    );
+  });
+
+  test('搜索结果里 album.mid 为空时 img_url 为空串', () => {
+    const provider = loadProvider('qq', emptyBodyAxios());
+    const track = provider.qq_convert_song2({
+      mid: 'song1',
+      name: '歌名',
+      singer: [{ name: '歌手', mid: 's1' }],
+      album: { name: '专辑', mid: '' },
+    });
+    assert.strictEqual(track.img_url, '');
   });
 });
 
