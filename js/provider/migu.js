@@ -506,6 +506,8 @@ class migu {
     }
     // const target_url = `https://app.c.nf.migu.cn/MIGUM2.0/strategy/listen-url/v2.2?netType=01&resourceType=E&songId=${songId}&toneFlag=${toneFlag}`;
     const target_url = `https://app.c.nf.migu.cn/MIGUM3.0/strategy/pc/listen/v1.0?scene=&netType=01&resourceType=2&copyrightId=${copyrightId}&contentId=${contentId}&toneFlag=${toneFlag}`;
+    // 失败必须回调 failure：上层自动切源拿不到回调就会永久挂起，
+    // 播放器停在等待地址的会话上既不提示也不跳歌。
     axios
       .get(target_url, {
         headers: {
@@ -516,7 +518,8 @@ class migu {
       .then((response) => {
         // const { data } = response.data;
         // let playUrl = response.data.data ? response.data.data.playUrl : null;
-        let playUrl = response.data.data ? response.data.data.url : null;
+        const payload = response.data && response.data.data;
+        let playUrl = payload ? payload.url : null;
         if (playUrl) {
           if (playUrl.startsWith('//')) {
             playUrl = `https:${playUrl}`;
@@ -540,7 +543,8 @@ class migu {
         } else {
           failure(sound);
         }
-      });
+      })
+      .catch(() => failure(sound));
   }
 
   static search(url) {
@@ -626,6 +630,9 @@ class migu {
     // };
     return {
       success: (fn) => {
+        // 失败必须回空结果：自动切源把每个 search 包成 Promise，不回调就永久挂起。
+        const respondEmpty = () =>
+          fn({ result: [], total: 0, type: searchType });
         axios
           .get(target_url, {
             // headers,
@@ -662,7 +669,8 @@ class migu {
               total,
               type: searchType,
             });
-          });
+          })
+          .catch(respondEmpty);
       },
     };
   }

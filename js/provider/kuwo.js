@@ -249,9 +249,13 @@ class kuwo {
           if (isRetryValue) {
             return callback('');
           }
-          return axios.get('https://www.kuwo.cn/').then(() => {
-            this.kw_get_token(callback, true);
-          });
+          // 取 token 失败必须回调（给空 token 让调用方继续），否则整条搜索 / 取地址链路挂死
+          return axios
+            .get('https://www.kuwo.cn/')
+            .then(() => {
+              this.kw_get_token(callback, true);
+            })
+            .catch(() => callback(''));
         }
         return callback(cookie.value);
       }
@@ -260,6 +264,13 @@ class kuwo {
 
   static kw_cookie_get(url, callback) {
     const name = 'Hm_Iuvt_cdb524f42f23cer9b268564v7y735ewrq2324';
+    // callback 只许生效一次：重试分支与外层 catch 都可能到达
+    let called = false;
+    const done = (value) => {
+      if (called) return;
+      called = true;
+      callback(value);
+    };
     this.kw_get_token((token) => {
       axios
         .get(url, {
@@ -277,17 +288,14 @@ class kuwo {
                     Secret: h(token2, name),
                   },
                 })
-                .then((res) => {
-                  callback(res);
-                });
+                .then((res) => done(res))
+                .catch(() => done());
             });
           } else {
-            callback(response);
+            done(response);
           }
         })
-        .catch(() => {
-          callback();
-        });
+        .catch(() => done());
     });
   }
 
@@ -339,23 +347,25 @@ class kuwo {
 
     return {
       success: (fn) => {
+        // 失败必须回空结果：自动切源把每个 search 包成 Promise，不回调就永久挂起。
+        const respondEmpty = () =>
+          fn({ result: [], total: 0, type: searchType });
         this.kw_cookie_get(target_url, (response) => {
           let result = [];
           let total = 0;
-          if (response === undefined) {
-            return fn({
-              result,
-              total,
-              type: searchType,
-            });
-          }
-          if (searchType === '0' && response.data.abslist !== undefined) {
-            result = response.data.abslist.map((item) =>
+          // 风控 / 失败时 response 为空，或 data 里没有预期字段，直接取值会抛异常
+          const payload = response && response.data;
+          if (searchType === '0' && payload && payload.abslist !== undefined) {
+            result = payload.abslist.map((item) =>
               this.kw_convert_song3(item)
             );
-            total = parseInt(response.data.HIT);
-          } else if (searchType === '1' && response.data.data !== undefined) {
-            result = response.data.data.list.map((item) => ({
+            total = parseInt(payload.HIT);
+          } else if (
+            searchType === '1' &&
+            payload &&
+            payload.data !== undefined
+          ) {
+            result = payload.data.list.map((item) => ({
               id: `kwplaylist_${item.id}`,
               title: this.html_decode(item.name),
               source: 'kuwo',
@@ -365,7 +375,7 @@ class kuwo {
               author: this.html_decode(item.uname),
               count: item.total,
             }));
-            total = response.data.data.total;
+            total = payload.data.total;
           }
           return fn({
             result,
@@ -384,10 +394,11 @@ class kuwo {
 
     const target_url = `https://www.kuwo.cn/api/v1/www/music/playUrl?mid=${song_id}&type=music&httpsStatus=1&reqId=&plat=web_www&from=`;
     this.kw_cookie_get(target_url, (response) => {
-      const { data } = response;
+      // 取 token / 请求失败时 response 为 undefined，解构会抛异常并让回调丢失
+      const payload = response && response.data;
 
-      if (data && data.data && data.data.url) {
-        sound.url = data.data.url;
+      if (payload && payload.data && payload.data.url) {
+        sound.url = payload.data.url;
         sound.platform = 'kuwo';
 
         success(sound);

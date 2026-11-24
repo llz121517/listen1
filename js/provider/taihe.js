@@ -184,6 +184,8 @@ class taihe {
   static bootstrap_track(track, success, failure) {
     const sound = {};
     const song_id = track.id.slice('thtrack_'.length);
+    // 失败必须回调 failure：上层自动切源拿不到回调就会永久挂起，
+    // 播放器停在等待地址的会话上既不提示也不跳歌。
     axiosTH
       .get('/song/tracklink', {
         params: {
@@ -192,7 +194,7 @@ class taihe {
       })
       .then((response) => {
         const { data } = response;
-        if (data.data && data.data.path) {
+        if (data && data.data && data.data.path) {
           sound.url = data.data.path;
           sound.platform = 'taihe';
           sound.bitrate = `${data.data.rate}kbps`;
@@ -201,7 +203,8 @@ class taihe {
         } else {
           failure(sound);
         }
-      });
+      })
+      .catch(() => failure(sound));
   }
 
   static lyric(url) {

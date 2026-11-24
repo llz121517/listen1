@@ -412,20 +412,28 @@ class netease {
         expirationDate: expire,
       },
       (cookie) => {
-        axios.post(target_url, new URLSearchParams(data)).then((response) => {
-          const { data: res_data } = response;
-          const { url, br } = res_data.data[0];
-          if (url != null) {
-            sound.url = url;
-            const bitrate = `${(br / 1000).toFixed(0)}kbps`;
-            sound.bitrate = bitrate;
-            sound.platform = 'netease';
+        // 失败必须回调 failure：上层自动切源拿不到回调就会永久挂起，
+        // 播放器停在等待地址的会话上既不提示也不跳歌。
+        axios
+          .post(target_url, new URLSearchParams(data))
+          .then((response) => {
+            const { data: res_data } = response;
+            // 接口异常 / 风控时 data 可能为空数组，直接取值会抛异常导致回调丢失
+            const first = res_data && res_data.data && res_data.data[0];
+            const url = first ? first.url : null;
+            const { br } = first || {};
+            if (url != null) {
+              sound.url = url;
+              const bitrate = `${(br / 1000).toFixed(0)}kbps`;
+              sound.bitrate = bitrate;
+              sound.platform = 'netease';
 
-            success(sound);
-          } else {
-            failure(sound);
-          }
-        });
+              success(sound);
+            } else {
+              failure(sound);
+            }
+          })
+          .catch(() => failure(sound));
       }
     );
   }

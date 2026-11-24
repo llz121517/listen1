@@ -2,6 +2,7 @@
 .DS_Store
 .vscode
 .eslintcache
+.dsh_tmp
 
 node_modules
 dist
