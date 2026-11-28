@@ -3,6 +3,18 @@
 /* eslint-disable no-use-before-define */
 /* global getParameterByName cookieRemove async forge */
 class migu {
+  /** 专辑歌曲的 albumImgs：优先取第 2 项，不足时取第 1 项，缺失时为空串。 */
+  static mg_album_imgs_cover(albumImgs) {
+    if (!Array.isArray(albumImgs) || albumImgs.length === 0) return '';
+    const picked = albumImgs[1] || albumImgs[0];
+    return migu.mg_cover_url(picked && picked.img);
+  }
+
+  /** 歌单搜索结果的封面字段是 musicListPicUrl（完整地址），没有时为空串。 */
+  static mg_playlist_search_cover(item) {
+    return migu.mg_cover_url(item && item.musicListPicUrl);
+  }
+
   static mg_convert_song(song) {
     return {
       id: `mgtrack_${song.copyrightId}`,
@@ -15,7 +27,7 @@ class migu {
       album_id: song.albumId !== 1 ? `mgalbum_${song.albumId}` : 'mgalbum_',
       source: 'migu',
       source_url: `https://music.migu.cn/v3/music/song/${song.copyrightId}`,
-      img_url: song.albumImgs[1].img,
+      img_url: migu.mg_album_imgs_cover(song.albumImgs),
       // url: `mgtrack_${song.copyrightId}`,
       lyric_url: song.lrcUrl || '',
       tlyric_url: song.trcUrl || '',
@@ -669,7 +681,7 @@ class migu {
                   source: 'migu',
                   source_url: `https://music.migu.cn/v3/music/playlist/${item.id}`,
                   // img_url: item.img,
-                  img_url: item.imgItems[0].img,
+                  img_url: this.mg_playlist_search_cover(item),
                   url: `mgplaylist_${item.id}`,
                   author: item.userName,
                   count: item.musicNum,

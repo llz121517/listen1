@@ -36,6 +36,54 @@ const song = (img1) => ({
   ext: { lrcUrl: '', trcUrl: '' },
 });
 
+describe('咪咕：歌单搜索与专辑歌曲封面的取值与空值保护', () => {
+  const migu = loadMigu();
+
+  test('歌单搜索结果的封面来自 musicListPicUrl', () => {
+    assert.strictEqual(
+      migu.mg_playlist_search_cover({
+        musicListPicUrl: 'https://d.musicapp.migu.cn/a.png',
+      }),
+      'https://d.musicapp.migu.cn/a.png'
+    );
+  });
+
+  test('歌单搜索结果没有封面字段时返回空串，不抛异常', () => {
+    assert.strictEqual(migu.mg_playlist_search_cover({}), '');
+    assert.strictEqual(migu.mg_playlist_search_cover(null), '');
+  });
+
+  test('mg_convert_song：albumImgs 优先取第 2 项，不足时取第 1 项，缺失时为空串', () => {
+    const base = {
+      copyrightId: 'c1',
+      songName: 'S',
+      singer: 'Singer',
+      singerId: '1',
+      albumId: '2',
+      album: 'A',
+    };
+    assert.strictEqual(
+      migu.mg_convert_song({
+        ...base,
+        albumImgs: [{ img: 'https://x/1.webp' }, { img: 'https://x/2.webp' }],
+      }).img_url,
+      'https://x/2.webp'
+    );
+    assert.strictEqual(
+      migu.mg_convert_song({
+        ...base,
+        albumImgs: [{ img: 'https://x/1.webp' }],
+      }).img_url,
+      'https://x/1.webp'
+    );
+    assert.strictEqual(migu.mg_convert_song({ ...base }).img_url, '');
+    assert.strictEqual(
+      migu.mg_convert_song({ ...base, albumImgs: [] }).img_url,
+      ''
+    );
+  });
+});
+
 describe('咪咕搜索：封面地址补全', () => {
   const migu = loadMigu();
 
