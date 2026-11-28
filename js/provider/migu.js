@@ -26,6 +26,19 @@ class migu {
     };
   }
 
+  /**
+   * 搜索接口返回的 img1/img2/img3 是不带域名的相对路径（/data/oss/...），
+   * 直接当 img_url 会按扩展页面的域名解析而加载失败，这里补全咪咕资源域名。
+   * 已经是完整地址（http / https / 协议相对）的原样返回。
+   */
+  static mg_cover_url(img) {
+    if (!img || typeof img !== 'string') return '';
+    if (/^https?:\/\//.test(img)) return img;
+    if (img.startsWith('//')) return `https:${img}`;
+    if (img.startsWith('/')) return `https://d.musicapp.migu.cn${img}`;
+    return img;
+  }
+
   static mg_convert_song2(song) {
     return {
       id: `mgtrack_${song.copyrightId}`,
@@ -38,7 +51,7 @@ class migu {
       album_id: song.albumId !== 1 ? `mgalbum_${song.albumId}` : 'mgalbum_',
       source: 'migu',
       source_url: `https://music.migu.cn/v3/music/song/${song.copyrightId}`,
-      img_url: song.img1,
+      img_url: migu.mg_cover_url(song.img1),
       // url: `mgtrack_${song.copyrightId}`,
       lyric_url: song.ext ? song.ext.lrcUrl : '',
       tlyric_url: song.ext ? song.ext.trcUrl : '',
