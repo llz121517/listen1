@@ -1149,9 +1149,12 @@ ul.detail-songlist li .desc div.title:hover{
     to right,
     var(--text-default-color) 0,
     var(--text-default-color)
-      calc(var(--word-lyric-p, 0) * 100% - var(--word-lyric-soft)),
+      calc(
+        var(--word-lyric-p, 0) * (100% + var(--word-lyric-soft)) -
+          var(--word-lyric-soft)
+      ),
     color-mix(in srgb, var(--text-default-color) 35%, transparent)
-      calc(var(--word-lyric-p, 0) * 100%),
+      calc(var(--word-lyric-p, 0) * (100% + var(--word-lyric-soft))),
     color-mix(in srgb, var(--text-default-color) 35%, transparent) 100%
   );
   -webkit-background-clip: text;
