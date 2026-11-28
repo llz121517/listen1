@@ -377,8 +377,8 @@ class qq {
           },
         };
         // 失败必须回空结果：自动切源把每个 search 包成 Promise，不回调就永久挂起。
-        const respondEmpty = () => fn({ result: [], total: 0, type: searchType });
-        axios
+        const emptyResult = { result: [], total: 0, type: searchType };
+        const musicuPromise = axios
           .post(target_url, query)
           .then((response) => {
             const { data } = response;
@@ -411,13 +411,54 @@ class qq {
               }));
               total = meta.sum || 0;
             }
-            return fn({
-              result,
-              total,
-              type: searchType,
-            });
+            return { result, total, type: searchType };
           })
-          .catch(respondEmpty);
+          .catch(() => emptyResult);
+
+        // 歌单搜索只走 musicu
+        if (searchType !== '0') {
+          musicuPromise.then(fn);
+          return;
+        }
+
+        // musicu 桌面搜索接口会对未登录请求随机回 req.code=2001（空结果），
+        // 所以同时并行请求旧的 search_for_qq_cp（无需登录，每页上限约 30 条），
+        // 谁先给出非空结果用谁；两路都空 / 都失败才回空结果，回调只触发一次。
+        const legacyUrl =
+          'https://c.y.qq.com/soso/fcgi-bin/search_for_qq_cp?' +
+          `w=${encodeURIComponent(keyword)}&p=${parseInt(page, 10)}&n=30` +
+          '&format=json&platform=h5';
+        const legacyPromise = axios
+          .get(legacyUrl)
+          .then((response) => {
+            const payload = response && response.data;
+            const song = payload && payload.data && payload.data.song;
+            const list = (song && song.list) || [];
+            return {
+              result: list.map((item) => this.qq_convert_song(item)),
+              total: (song && song.totalnum) || 0,
+              type: searchType,
+            };
+          })
+          .catch(() => emptyResult);
+
+        let settled = false;
+        let pending = 2;
+        const finish = (value) => {
+          if (settled) return;
+          settled = true;
+          fn(value);
+        };
+        [musicuPromise, legacyPromise].forEach((promise) => {
+          promise.then((value) => {
+            if (value.result.length > 0) {
+              finish(value);
+              return;
+            }
+            pending -= 1;
+            if (pending === 0) finish(emptyResult);
+          });
+        });
       },
     };
   }
