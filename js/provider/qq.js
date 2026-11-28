@@ -541,18 +541,19 @@ class qq {
    * 任何一步失败（请求、解密、没有逐字数据、解密模块缺失）都返回 null，调用方回退 LRC。
    */
   static qrc_word_lyric(songmid) {
+    const empty = { wordLyric: null, tlyric: '' };
     if (
       typeof qrcDecrypt !== 'function' ||
       typeof extractQrcLyricContent !== 'function'
     ) {
-      return Promise.resolve(null);
+      return Promise.resolve(empty);
     }
     const reqData = {
       comm: { ct: 24, cv: 0, format: 'json', uin: '0' },
       req: {
         module: 'music.musichallSong.PlayLyricInfo',
         method: 'GetPlayLyricInfo',
-        param: { songMID: songmid, qrc: 1, crypt: 1, trans: 0, roma: 0 },
+        param: { songMID: songmid, qrc: 1, crypt: 1, trans: 1, roma: 0 },
       },
     };
     return axios
@@ -562,15 +563,27 @@ class qq {
           response && response.data && response.data.req
             ? response.data.req.data
             : null;
-        if (!info || info.qrc !== 1 || !info.lyric) {
-          return null;
+        if (!info) {
+          return empty;
         }
-        return qrcDecrypt(info.lyric).then((xml) => {
-          const text = extractQrcLyricContent(xml);
-          return text ? { format: 'qrc', text } : null;
-        });
+        // 翻译与逐字互不依赖：旧接口常常没有 trans，这里的 trans 是解密后的普通 LRC
+        const transPromise = info.trans
+          ? qrcDecrypt(info.trans).catch(() => '')
+          : Promise.resolve('');
+        const wordPromise =
+          info.qrc === 1 && info.lyric
+            ? qrcDecrypt(info.lyric)
+                .then((xml) => {
+                  const text = extractQrcLyricContent(xml);
+                  return text ? { format: 'qrc', text } : null;
+                })
+                .catch(() => null)
+            : Promise.resolve(null);
+        return Promise.all([wordPromise, transPromise]).then(
+          ([wordLyric, tlyric]) => ({ wordLyric, tlyric })
+        );
       })
-      .catch(() => null);
+      .catch(() => empty);
   }
 
   static lyric(url) {
@@ -594,11 +607,14 @@ class qq {
           })
           .catch(() => ({ lyric: '', tlyric: '' }));
         const qrcPromise = qq.qrc_word_lyric(track_id);
-        Promise.all([lrcPromise, qrcPromise]).then(([lrc, wordLyric]) => {
+        Promise.all([lrcPromise, qrcPromise]).then(([lrc, qrc]) => {
+          // 旧接口没有翻译时（很多歌如此），用 GetPlayLyricInfo 解密出的翻译补上
+          const tlyric =
+            lrc.tlyric || (qrc.tlyric || '').replace(/\/\//g, '');
           fn({
             lyric: lrc.lyric,
-            tlyric: lrc.tlyric,
-            wordLyric,
+            tlyric,
+            wordLyric: qrc.wordLyric,
           });
         });
       },
