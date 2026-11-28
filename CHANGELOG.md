@@ -11,6 +11,28 @@
 本仓库自 2026-10-17 起不再使用版本号机制：插件各处 `version` 字段固定 `1.0.0`，变更以**日期小节**记录（`## YYYY-MM-DD`，新的在上），构建之间的差异由**提交哈希**区分。
 历史版本小节（`[x.y.z] - 日期`）按当时的机制原样保留。`dev` → `main` 的 PR 工作流照旧，合并提交标题只写日期（细则见 [docs/CONVENTIONS.md](docs/CONVENTIONS.md) §7/§10）。
 
+## 2026-11-28
+
+### Added
+
+- QQ 音乐支持逐字歌词（QRC）：通过 `GetPlayLyricInfo` 取密文，独立实现 QRC 定制 DES 解密（`js/provider/qq_qrc.js`）并解压 zlib（优先原生 `DecompressionStream`，缺失时回退内置的 pako inflate），`js/lyric_parser.js` 新增 `parseQrc` 并注册 `qrc` 格式
+- 新增 `NOTICE`，说明随仓库分发的 pako 2.1.0（inflate 构建，MIT AND Zlib）
+- 新增 QRC 解析、解密、QQ 歌词获取、QQ 搜索、酷狗封面、咪咕封面的测试（`npm test` 共 213 例，测试向量均为合成数据）
+
+### Changed
+
+- QQ 歌词的 LRC / 翻译与 QRC 并发获取，旧接口没有翻译时改用 `GetPlayLyricInfo` 解密出的翻译；任一请求失败都不影响回调
+- QQ 歌曲搜索同时并行请求 `musicu.fcg` 与旧的 `search_for_qq_cp`（无需登录），先返回非空结果的一路胜出，缓解桌面搜索接口随机回 `req.code=2001` 的限流
+- 封面背景不透明度调整为 0.75（深浅色主题统一）
+
+### Fixed
+
+- 逐字歌词句尾残留一截半透明的过渡带：渐变分界的移动范围扩展到包含柔化带，唱完后整行完全点亮
+- QQ 歌词接口在没有 `trans` 字段时会抛异常且丢回调
+- 酷狗搜索结果封面全部加载失败：原逐条请求的 `play/getdata` 已失效，改用搜索结果自带的 `Image`（或 `trans_param.union_cover`），同时省去每条结果一次的额外请求
+- 咪咕歌曲搜索封面是不带域名的相对路径导致加载失败，补全为 `https://d.musicapp.migu.cn/...`
+- 咪咕歌单搜索读取不存在的 `imgItems` 而抛异常、返回空列表，改读 `musicListPicUrl`；专辑歌曲 `albumImgs` 缺失时不再抛异常
+
 ## 2026-11-24
 
 ### Fixed
