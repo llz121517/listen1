@@ -11,7 +11,7 @@ class kugou {
       album_id: `kgalbum_${song.AlbumID}`,
       source: 'kugou',
       source_url: `https://www.kugou.com/song/#hash=${song.FileHash}&album_id=${song.AlbumID}`,
-      img_url: '',
+      img_url: kugou.kg_cover_url(song),
       // url: `kgtrack_${song.FileHash}`,
       lyric_url: song.FileHash,
     };
@@ -45,17 +45,20 @@ class kugou {
     );
   }
 
+  /**
+   * 封面直接取搜索结果自带的 Image（或 trans_param.union_cover），{size} 换成 400；
+   * 旧的 www.kugou.com play/getdata 已失效（err_code 20010），不再逐条请求。
+   */
+  static kg_cover_url(song) {
+    const cover =
+      song.Image ||
+      (song.trans_param && song.trans_param.union_cover) ||
+      '';
+    return cover ? cover.replace('{size}', '400') : '';
+  }
+
   static kg_render_search_result_item(index, item, params, callback) {
-    const track = kugou.kg_convert_song(item);
-    // Add singer img
-    const url = `${'https://www.kugou.com/yy/index.php?r=play/getdata&hash='}${
-      track.lyric_url
-    }`;
-    axios.get(url).then((response) => {
-      const { data } = response;
-      track.img_url = data.data.img;
-      callback(null, track);
-    });
+    callback(null, kugou.kg_convert_song(item));
   }
 
   static search(url) {
