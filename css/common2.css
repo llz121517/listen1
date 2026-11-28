@@ -1149,9 +1149,12 @@ ul.detail-songlist li .desc div.title:hover{
     to right,
     var(--text-default-color) 0,
     var(--text-default-color)
-      calc(var(--word-lyric-p, 0) * 100% - var(--word-lyric-soft)),
+      calc(
+        var(--word-lyric-p, 0) * (100% + var(--word-lyric-soft)) -
+          var(--word-lyric-soft)
+      ),
     color-mix(in srgb, var(--text-default-color) 35%, transparent)
-      calc(var(--word-lyric-p, 0) * 100%),
+      calc(var(--word-lyric-p, 0) * (100% + var(--word-lyric-soft))),
     color-mix(in srgb, var(--text-default-color) 35%, transparent) 100%
   );
   -webkit-background-clip: text;
@@ -1686,7 +1689,9 @@ svg.searchspinner {
   );
 }
 
+/* 封面背景：深浅两套主题统一用 0.75 不透明度，滤镜保持原样，不做额外提亮 / 提饱和。 */
 .footer .footer-main.has-cover-bg .bg {
+  opacity: 0.75;
   filter: blur(120px) contrast(75%) brightness(150%);
 }
 .footer .footerwrap {

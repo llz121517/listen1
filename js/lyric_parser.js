@@ -109,12 +109,57 @@ function parseYrc(yrc) {
   return lines;
 }
 
+const QRC_LINE_REG = /^\[(\d+),(\d+)\](.*)$/;
+// 词时间在词文本之后：`文字(起点,时长)`。文字用惰性匹配，空格、括号都是独立的词，
+// 只有紧跟 `(数字,数字)` 的才算时间戳。
+const QRC_WORD_REG = /(.*?)\((\d+),(\d+)\)/g;
+
+/**
+ * 解析 QQ 音乐 QRC 逐字歌词的行文本（provider 解密后从 LyricContent 里取出的部分），格式为
+ * `[行开始ms,行时长ms]词1(词1开始ms,词1时长ms)词2(词2开始ms,词2时长ms)`，时间一律是绝对毫秒。
+ * [ti:] [ar:] [offset:] [kana:] 等头部标签行不以 `[数字,数字]` 开头，会被跳过。
+ * 返回统一模型 [{ lineStart, lineDuration, content, words: [{ start, dur, text }] }]；
+ * 空输入、非字符串、没有词组的行都跳过。
+ */
+function parseQrc(qrc) {
+  if (typeof qrc !== 'string' || qrc === '') {
+    return [];
+  }
+  const lines = [];
+  qrc.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (line === '') return;
+    const lineMatch = QRC_LINE_REG.exec(line);
+    if (!lineMatch) return;
+    const words = [];
+    QRC_WORD_REG.lastIndex = 0;
+    let wordMatch = QRC_WORD_REG.exec(lineMatch[3]);
+    while (wordMatch !== null) {
+      words.push({
+        start: Number(wordMatch[2]),
+        dur: Number(wordMatch[3]),
+        text: unescapeLyricEntities(wordMatch[1]),
+      });
+      wordMatch = QRC_WORD_REG.exec(lineMatch[3]);
+    }
+    if (words.length === 0) return;
+    lines.push({
+      lineStart: Number(lineMatch[1]),
+      lineDuration: Number(lineMatch[2]),
+      content: words.map((word) => word.text).join(''),
+      words,
+    });
+  });
+  return lines;
+}
+
 /**
  * 平台格式 → 统一模型的注册表。新增平台时在这里加一项：
  * `qrc: parseQrc`、`krc: parseKrc` …… key 与 provider 返回的 wordLyric.format 对应。
  */
 const WORD_LYRIC_PARSERS = {
   yrc: parseYrc,
+  qrc: parseQrc,
 };
 
 /**

@@ -24,6 +24,7 @@ function loadLyricParser() {
 
 const {
   parseYrc,
+  parseQrc,
   parseWordLyric,
   wordLyricProgress,
   parseLyric,
@@ -131,6 +132,91 @@ describe('parseYrc：解析网易云 YRC 文本（产出统一模型）', () => 
     [undefined, null, '', 0, 123, {}, []].forEach((value) => {
       assert.strictEqual(parseYrc(value).length, 0);
     });
+  });
+});
+
+describe('parseQrc：解析 QQ 音乐 QRC 行文本（产出统一模型）', () => {
+  test('单行拆出绝对毫秒的行/词时间与文本（词时间在词文本之后）', () => {
+    const lines = parseQrc('[1000,300]你(1000,100)好(1100,200)');
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0].lineStart, 1000);
+    assert.strictEqual(lines[0].lineDuration, 300);
+    assert.strictEqual(lines[0].content, '你好');
+    assert.deepStrictEqual(plain(lines[0].words), [
+      makeWord('你', 1000, 100),
+      makeWord('好', 1100, 200),
+    ]);
+  });
+
+  test('头部标签行（ti/ar/al/by/offset/kana）与空行被跳过，只保留歌词行', () => {
+    const lines = parseQrc(
+      [
+        '[ti:标题]',
+        '[ar:歌手]',
+        '[al:专辑]',
+        '[by:]',
+        '[offset:0]',
+        '[kana:1a1b]',
+        '',
+        '[100,50]啊(100,50)',
+        '[200,50]哦(200,50)',
+      ].join('\n')
+    );
+    assert.deepStrictEqual(contents(lines), ['啊', '哦']);
+    assert.deepStrictEqual(
+      plain(lines.map((line) => line.lineStart)),
+      [100, 200]
+    );
+  });
+
+  test('兼容 CRLF 与行尾空白', () => {
+    const lines = parseQrc('[100,50]啊(100,50)\r\n[200,50]哦(200,50)  \r\n');
+    assert.strictEqual(lines.length, 2);
+    assert.strictEqual(lines[1].content, '哦');
+  });
+
+  test('空格与括号都是独立的词，不会被当成时间戳', () => {
+    const lines = parseQrc(
+      '[0,500]a(0,100) (100,100)((200,100)b(300,100))(400,100)'
+    );
+    assert.deepStrictEqual(
+      plain(lines[0].words.map((item) => item.text)),
+      ['a', ' ', '(', 'b', ')']
+    );
+    assert.strictEqual(lines[0].content, 'a (b)');
+    assert.strictEqual(lines[0].words[2].start, 200);
+  });
+
+  test('词文本里的 HTML 实体反转义', () => {
+    const lines = parseQrc('[0,20]&amp;(0,10)&lt;(10,10)');
+    assert.strictEqual(lines[0].content, '&<');
+  });
+
+  test('没有词组的行被跳过', () => {
+    assert.strictEqual(parseQrc('[0,10]').length, 0);
+    assert.strictEqual(parseQrc('[0,10]没有时间').length, 0);
+    assert.strictEqual(parseQrc('[0,10]\n[20,10]').length, 0);
+  });
+
+  test('空值 / 非字符串返回空数组，不抛异常', () => {
+    [undefined, null, '', 0, 123, {}, []].forEach((value) => {
+      assert.strictEqual(parseQrc(value).length, 0);
+    });
+  });
+
+  test('parseWordLyric 按 qrc 格式分发，逐字视图带出 QRC 行', () => {
+    const lines = parseWordLyric({
+      format: 'qrc',
+      text: '[1000,300]你(1000,100)好(1100,200)',
+    });
+    assert.strictEqual(lines.length, 1);
+    assert.strictEqual(lines[0].content, '你好');
+    const view = wordView('[00:01.00]你好', null, {
+      format: 'qrc',
+      text: '[1000,300]你(1000,100)好(1100,200)',
+    });
+    assert.deepStrictEqual(contents(view), ['你好']);
+    assert.strictEqual(view[0].karaoke, true);
   });
 });
 

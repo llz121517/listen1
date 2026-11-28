@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define */
-/* global getParameterByName cookieGet cookieRemove */
+/* global getParameterByName cookieGet cookieRemove qrcDecrypt extractQrcLyricContent */
 // eslint-disable-next-line no-unused-vars
 class qq {
   static htmlDecode(value) {
@@ -73,7 +73,9 @@ class qq {
   }
 
   static qq_get_image_url(qqimgid, img_type) {
-    if (qqimgid == null) {
+    // 空字符串同样要拦：只判 null 会拼出 `T002R300x300M000.jpg` 这种空封面地址，
+    // 请求固定 404（控制台里那条 y.gtimg.cn/.../T002R300x300M000.jpg 404）。
+    if (!qqimgid) {
       return '';
     }
     let category = '';
@@ -375,38 +377,88 @@ class qq {
           },
         };
         // 失败必须回空结果：自动切源把每个 search 包成 Promise，不回调就永久挂起。
-        const respondEmpty = () => fn({ result: [], total: 0, type: searchType });
-        axios
+        const emptyResult = { result: [], total: 0, type: searchType };
+        const musicuPromise = axios
           .post(target_url, query)
           .then((response) => {
             const { data } = response;
+            // 搜索接口在未登录 / 被风控时会回 req.code=2001 且 body 为空结构，
+            // 直接取 data.req.data.body.song.list 会抛异常，回调就丢了。
+            const reqData = data && data.req && data.req.data;
+            const body = (reqData && reqData.body) || {};
+            const meta = (reqData && reqData.meta) || {};
             let result = [];
             let total = 0;
             if (searchType === '0') {
-              result = data.req.data.body.song.list.map((item) =>
-                this.qq_convert_song2(item)
-              );
-              total = data.req.data.meta.sum;
+              // 歌曲搜索现在要求登录态，未登录时服务端只回空 list（code=2001），
+              // 这里当「没搜到」处理，让自动切源继续试下一个源。
+              const songs = (body.song && body.song.list) || [];
+              result = songs.map((item) => this.qq_convert_song2(item));
+              total = meta.sum || 0;
             } else if (searchType === '1') {
-              result = data.req.data.body.songlist.list.map((info) => ({
+              const playlists = (body.songlist && body.songlist.list) || [];
+              result = playlists.map((info) => ({
                 id: `qqplaylist_${info.dissid}`,
                 title: this.htmlDecode(info.dissname),
                 source: 'qq',
                 source_url: `https://y.qq.com/n/ryqq/playlist/${info.dissid}`,
                 img_url: info.imgurl,
                 url: `qqplaylist_${info.dissid}`,
-                author: this.UnicodeToAscii(info.creator.name),
+                author: this.UnicodeToAscii(
+                  (info.creator && info.creator.name) || ''
+                ),
                 count: info.song_count,
               }));
-              total = data.req.data.meta.sum;
+              total = meta.sum || 0;
             }
-            return fn({
-              result,
-              total,
-              type: searchType,
-            });
+            return { result, total, type: searchType };
           })
-          .catch(respondEmpty);
+          .catch(() => emptyResult);
+
+        // 歌单搜索只走 musicu
+        if (searchType !== '0') {
+          musicuPromise.then(fn);
+          return;
+        }
+
+        // musicu 桌面搜索接口会对未登录请求随机回 req.code=2001（空结果），
+        // 所以同时并行请求旧的 search_for_qq_cp（无需登录，每页上限约 30 条），
+        // 谁先给出非空结果用谁；两路都空 / 都失败才回空结果，回调只触发一次。
+        const legacyUrl =
+          'https://c.y.qq.com/soso/fcgi-bin/search_for_qq_cp?' +
+          `w=${encodeURIComponent(keyword)}&p=${parseInt(page, 10)}&n=30` +
+          '&format=json&platform=h5';
+        const legacyPromise = axios
+          .get(legacyUrl)
+          .then((response) => {
+            const payload = response && response.data;
+            const song = payload && payload.data && payload.data.song;
+            const list = (song && song.list) || [];
+            return {
+              result: list.map((item) => this.qq_convert_song(item)),
+              total: (song && song.totalnum) || 0,
+              type: searchType,
+            };
+          })
+          .catch(() => emptyResult);
+
+        let settled = false;
+        let pending = 2;
+        const finish = (value) => {
+          if (settled) return;
+          settled = true;
+          fn(value);
+        };
+        [musicuPromise, legacyPromise].forEach((promise) => {
+          promise.then((value) => {
+            if (value.result.length > 0) {
+              finish(value);
+              return;
+            }
+            pending -= 1;
+            if (pending === 0) finish(emptyResult);
+          });
+        });
       },
     };
   }
@@ -524,6 +576,57 @@ class qq {
     return buf;
   }
 
+  /**
+   * 取 QQ 的 QRC 逐字歌词：GetPlayLyricInfo 返回 hex 密文（qrc === 1 才有逐字数据），
+   * 解密后截出 LyricContent，以 { format: 'qrc', text } 交给 lyric_parser。
+   * 任何一步失败（请求、解密、没有逐字数据、解密模块缺失）都返回 null，调用方回退 LRC。
+   */
+  static qrc_word_lyric(songmid) {
+    const empty = { wordLyric: null, tlyric: '' };
+    if (
+      typeof qrcDecrypt !== 'function' ||
+      typeof extractQrcLyricContent !== 'function'
+    ) {
+      return Promise.resolve(empty);
+    }
+    const reqData = {
+      comm: { ct: 24, cv: 0, format: 'json', uin: '0' },
+      req: {
+        module: 'music.musichallSong.PlayLyricInfo',
+        method: 'GetPlayLyricInfo',
+        param: { songMID: songmid, qrc: 1, crypt: 1, trans: 1, roma: 0 },
+      },
+    };
+    return axios
+      .post('https://u.y.qq.com/cgi-bin/musicu.fcg', reqData)
+      .then((response) => {
+        const info =
+          response && response.data && response.data.req
+            ? response.data.req.data
+            : null;
+        if (!info) {
+          return empty;
+        }
+        // 翻译与逐字互不依赖：旧接口常常没有 trans，这里的 trans 是解密后的普通 LRC
+        const transPromise = info.trans
+          ? qrcDecrypt(info.trans).catch(() => '')
+          : Promise.resolve('');
+        const wordPromise =
+          info.qrc === 1 && info.lyric
+            ? qrcDecrypt(info.lyric)
+                .then((xml) => {
+                  const text = extractQrcLyricContent(xml);
+                  return text ? { format: 'qrc', text } : null;
+                })
+                .catch(() => null)
+            : Promise.resolve(null);
+        return Promise.all([wordPromise, transPromise]).then(
+          ([wordLyric, tlyric]) => ({ wordLyric, tlyric })
+        );
+      })
+      .catch(() => empty);
+  }
+
   static lyric(url) {
     // eslint-disable-line no-unused-vars
     const track_id = getParameterByName('track_id', url).split('_').pop();
@@ -533,13 +636,26 @@ class qq {
       `songmid=${track_id}&g_tk=5381&format=json&inCharset=utf8&outCharset=utf-8&nobase64=1`;
     return {
       success: (fn) => {
-        axios.get(target_url).then((response) => {
-          const { data } = response;
-          const lrc = data.lyric || '';
-          const tlrc = data.trans.replace(/\/\//g, '') || '';
-          return fn({
-            lyric: lrc,
-            tlyric: tlrc,
+        // LRC / 翻译与 QRC 并发取，互不影响：任何一个失败都不能让回调丢失
+        const lrcPromise = axios
+          .get(target_url)
+          .then((response) => {
+            const data = (response && response.data) || {};
+            return {
+              lyric: data.lyric || '',
+              tlyric: (data.trans || '').replace(/\/\//g, ''),
+            };
+          })
+          .catch(() => ({ lyric: '', tlyric: '' }));
+        const qrcPromise = qq.qrc_word_lyric(track_id);
+        Promise.all([lrcPromise, qrcPromise]).then(([lrc, qrc]) => {
+          // 旧接口没有翻译时（很多歌如此），用 GetPlayLyricInfo 解密出的翻译补上
+          const tlyric =
+            lrc.tlyric || (qrc.tlyric || '').replace(/\/\//g, '');
+          fn({
+            lyric: lrc.lyric,
+            tlyric,
+            wordLyric: qrc.wordLyric,
           });
         });
       },
