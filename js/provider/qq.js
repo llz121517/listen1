@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define */
-/* global getParameterByName cookieGet cookieRemove */
+/* global getParameterByName cookieGet cookieRemove qrcDecrypt extractQrcLyricContent */
 // eslint-disable-next-line no-unused-vars
 class qq {
   static htmlDecode(value) {
@@ -535,6 +535,44 @@ class qq {
     return buf;
   }
 
+  /**
+   * 取 QQ 的 QRC 逐字歌词：GetPlayLyricInfo 返回 hex 密文（qrc === 1 才有逐字数据），
+   * 解密后截出 LyricContent，以 { format: 'qrc', text } 交给 lyric_parser。
+   * 任何一步失败（请求、解密、没有逐字数据、解密模块缺失）都返回 null，调用方回退 LRC。
+   */
+  static qrc_word_lyric(songmid) {
+    if (
+      typeof qrcDecrypt !== 'function' ||
+      typeof extractQrcLyricContent !== 'function'
+    ) {
+      return Promise.resolve(null);
+    }
+    const reqData = {
+      comm: { ct: 24, cv: 0, format: 'json', uin: '0' },
+      req: {
+        module: 'music.musichallSong.PlayLyricInfo',
+        method: 'GetPlayLyricInfo',
+        param: { songMID: songmid, qrc: 1, crypt: 1, trans: 0, roma: 0 },
+      },
+    };
+    return axios
+      .post('https://u.y.qq.com/cgi-bin/musicu.fcg', reqData)
+      .then((response) => {
+        const info =
+          response && response.data && response.data.req
+            ? response.data.req.data
+            : null;
+        if (!info || info.qrc !== 1 || !info.lyric) {
+          return null;
+        }
+        return qrcDecrypt(info.lyric).then((xml) => {
+          const text = extractQrcLyricContent(xml);
+          return text ? { format: 'qrc', text } : null;
+        });
+      })
+      .catch(() => null);
+  }
+
   static lyric(url) {
     // eslint-disable-line no-unused-vars
     const track_id = getParameterByName('track_id', url).split('_').pop();
@@ -544,13 +582,23 @@ class qq {
       `songmid=${track_id}&g_tk=5381&format=json&inCharset=utf8&outCharset=utf-8&nobase64=1`;
     return {
       success: (fn) => {
-        axios.get(target_url).then((response) => {
-          const { data } = response;
-          const lrc = data.lyric || '';
-          const tlrc = data.trans.replace(/\/\//g, '') || '';
-          return fn({
-            lyric: lrc,
-            tlyric: tlrc,
+        // LRC / 翻译与 QRC 并发取，互不影响：任何一个失败都不能让回调丢失
+        const lrcPromise = axios
+          .get(target_url)
+          .then((response) => {
+            const data = (response && response.data) || {};
+            return {
+              lyric: data.lyric || '',
+              tlyric: (data.trans || '').replace(/\/\//g, ''),
+            };
+          })
+          .catch(() => ({ lyric: '', tlyric: '' }));
+        const qrcPromise = qq.qrc_word_lyric(track_id);
+        Promise.all([lrcPromise, qrcPromise]).then(([lrc, wordLyric]) => {
+          fn({
+            lyric: lrc.lyric,
+            tlyric: lrc.tlyric,
+            wordLyric,
           });
         });
       },
